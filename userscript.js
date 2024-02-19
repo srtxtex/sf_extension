@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         SF extension
-// @version      0.1
+// @version      0.2
 // @description  SF extension
 // @author       VirtusTex
 // @license      GPL-3.0 license
@@ -25,7 +25,20 @@ const delay = 700;
             Home: '/learning/course/course-v1:Skillfactory+URFUML2023+SEP2023/home',
         }
 
-        if (w.location.pathname === Pathname.Home) {
+        document.querySelector('div.sf-outline-page__outline-container > nav > a:nth-child(1)')?.addEventListener('click', e => {
+            const active = e.target.classList.contains('sf-course-tabs__tab--active');
+            if (!active) {
+                const timerId = setInterval(() => {
+                    const nav = document.getElementsByClassName('sf-course-menu sf-outline-page__course-menu');
+                    if (Boolean(nav.length)) {
+                        clearInterval(timerId);
+                        remakeNav();
+                    }
+                }, 100);
+            }
+        });
+
+        function remakeNav() {
             const [nav] = document.getElementsByClassName('sf-course-menu sf-outline-page__course-menu');
             nav.style.flex = "0 0 536px";
             const ul = nav.firstChild;
@@ -40,7 +53,8 @@ const delay = 700;
                 bullet.style.padding = '20px';
                 bullet.style.cursor = 'pointer';
                 bullet.classList.add('sf-course-menu__item');
-                bullet.innerHTML = `&#8227; ${name}`;
+                bullet.innerHTML = `<span>></span>&nbsp;&nbsp;${name}`;
+                bullet.childNodes[0].style.transform = "rotate(90deg)"
                 return bullet;
             }
             const bullet = createBullet(`Неотсортированное`);
@@ -49,6 +63,8 @@ const delay = 700;
                 const ul = this.nextElementSibling;
                 const display = ul.style.display;
                 ul.style.display = Boolean(display) ? '' : 'none';
+                console.log(this)
+                Boolean(display) ? this.childNodes[0].style.transform = "rotate(90deg)" : this.childNodes[0].style.transform = "rotate(0deg)";
             }
             Object.keys(data).forEach(semesterNumber => {
                 const disciplines = data[semesterNumber];
@@ -69,6 +85,7 @@ const delay = 700;
                     const ul = this.nextElementSibling;
                     const display = ul.style.display;
                     ul.style.display = Boolean(display) ? '' : 'none';
+                    Boolean(display) ? this.childNodes[0].style.transform = "rotate(90deg)" : this.childNodes[0].style.transform = "rotate(0deg)";
                 }
                 buttonList = [...buttonList, ...cloneUl.children];
             });
@@ -87,7 +104,6 @@ const delay = 700;
             let disciplines = [];
             Object.keys(data).forEach(semesterNumber => {
                 disciplines = [...disciplines, ...data[semesterNumber]];
-
             });
 
             ul.childNodes.forEach(item => {
@@ -98,6 +114,10 @@ const delay = 700;
                     //item.remove();
                 }
             });
+        }
+
+        if (w.location.pathname === Pathname.Home) {
+            setTimeout(remakeNav, 1000);
         }
     }
     if (w.self !== w.top) {
