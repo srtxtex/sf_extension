@@ -1,5 +1,6 @@
 # sf_extension
 Расширение для LMS SF в виде userscript для Tampermonkey
+
 При открытии страницы курса левая панель меняется в дизайне
 
 https://apps.skillfactory.ru/learning/course/course-v1:Skillfactory+URFUML2023+SEP2023/home
@@ -20,4 +21,5 @@ Tampermonkey доступен и для других браузеров, так 
 
 ## Обратная связь
 Создавайте issues
+
 Telegram @VirtusTex
