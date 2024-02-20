@@ -28,6 +28,24 @@ https://www.youtube.com/watch?v=8tyjJD65zws
 
 2. Скопировать содержимое файла userscript.js и добавить код в Tampermonkey в качестве нового юзрскрипта
 
+Нажать на иконку в трее браузера, выбрать "Панель управления"
+
+![Screenshot 1](https://github.com/srtxtex/sf_extension/blob/main/images/1.png)
+
+Нажать на таб где плюс, выглядит как открыть новую вкладку
+
+![Screenshot 2](https://github.com/srtxtex/sf_extension/blob/main/images/2.png)
+
+Выделить все что внутри и удалить
+
+![Screenshot 3](https://github.com/srtxtex/sf_extension/blob/main/images/3.png)
+
+Вставить код из userscript.js и сохранить (Ctrl+S или Файл->Сохранить)
+
+![Screenshot 4](https://github.com/srtxtex/sf_extension/blob/main/images/4.png)
+
+![Screenshot 5](https://github.com/srtxtex/sf_extension/blob/main/images/5.png)
+
 ## Планы
 1. Поработать с прогресс баром
 
