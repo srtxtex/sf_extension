@@ -6,7 +6,7 @@
 https://apps.skillfactory.ru/learning/course/course-v1:Skillfactory+URFUML2023+SEP2023/home
 
 ## Установка
-1. Зайти в интернет-магазин и скачать расширение Tampermonkey
+1. Зайти в интернет-магазин для своего браузера и установить бесплатное расширение Tampermonkey
 
 Chrome
 https://chromewebstore.google.com/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo?hl=ru
