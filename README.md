@@ -5,6 +5,10 @@
 
 https://apps.skillfactory.ru/learning/course/course-v1:Skillfactory+URFUML2023+SEP2023/home
 
+Предметы разбиры на блоки, можно скрыть, можно раскрыть. Немного уменьшена высота кнопок и увеличина ширина чтобы на странице больше умещалось.
+
+![Screenshot 0](https://github.com/srtxtex/sf_extension/blob/main/images/0.png)
+
 ## Установка
 1. Зайти в интернет-магазин для своего браузера и установить бесплатное расширение Tampermonkey
 
