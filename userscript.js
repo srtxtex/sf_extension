@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         SF extension
-// @version      0.3
+// @version      0.4
 // @description  SF extension
 // @author       VirtusTex
 // @license      GPL-3.0 license
@@ -320,7 +320,9 @@ class Page {
     }
 
     getInputsByProblemBlock(problemBlock) {
-        return [...problemBlock.getElementsByTagName('input')].filter(el => el.type !== "hidden" && !el.classList.contains('toggle-checkbox'));
+        const inputs = [...problemBlock.getElementsByTagName('input')].filter(el => el.type !== "hidden" && !el.classList.contains('toggle-checkbox'));
+        const selects = [...problemBlock.getElementsByTagName('select')];
+        return [...inputs, ...selects];
     }
 
     getButtonByProblemBlock(problemBlock) {
@@ -355,29 +357,31 @@ class Page {
         });
     }
 
-    isCorrectRadioOrCheckboxInput(label) {
+    isCorrectRadioOrCheckboxInput(input) {
         //radio label class choicegroup_correct choicegroup_incorrect
         //checkbox label class choicegroup_partially-correct только один правильный нет не правильных
         //хотя бы один не правильный choicegroup_incorrect
-        // все правильные choicegroup_correct
+        // все правильные choicegroup_correct 
         const classes = {
             correct: 'choicegroup_correct',
             incorrect: 'choicegroup_incorrect',
             partiallyCorrect: 'choicegroup_partially-correct',
-        }
+        };
 
+        const label = input.parentElement.querySelector(`[for="${input.id}"]`);
         const labelClass = this.isCorrectInput(label, classes);
 
         return labelClass;
     }
 
-    isCorrectTextInput(label) {
+    isCorrectTextInput(input) {
         //text div parent class="incorrect" correct
         const classes = {
             correct: 'correct',
             incorrect: 'incorrect',
-        }
+        };
 
+        const label = input.parentElement;
         const labelClass = this.isCorrectInput(label, classes);
 
         return labelClass;
@@ -406,7 +410,31 @@ class Page {
             }
         }
 
-        return '';
+        return '';//TODO придумать тип empty?
+    }
+
+    isCorrectOneSelect(select) {
+        const classes = {
+            correct: 'correct',
+            incorrect: 'incorrect',
+        };
+
+        const selectDescribedby = select.getAttribute('aria-describedby');
+        const span = select.parentElement.querySelector(`[id="${selectDescribedby}"]`);
+        const spanClass = this.isCorrectInput(span, classes);
+
+        return spanClass;
+    }
+
+    getSelectOptions(select) {
+        return [...select.querySelectorAll('option')];
+    }
+
+    getSelectValue(select) {
+        const options = this.getSelectOptions(select);
+        const option = options.find(option => option.value === select.value);
+        const value = option.value;
+        return value;
     }
 
     getValuesFromInput(input) {
@@ -417,17 +445,20 @@ class Page {
 
         if (['radio', 'checkbox'].includes(type)) {
             value = input.checked;
-            const label = input.parentElement.querySelector(`[for="${id}"]`);
-            isCorrect = this.isCorrectRadioOrCheckboxInput(label);
+            isCorrect = this.isCorrectRadioOrCheckboxInput(input);
         }
 
         if (type === 'text') {
             value = input.value;
-            const label = input.parentElement;
-            isCorrect = this.isCorrectTextInput(label);
+            isCorrect = this.isCorrectTextInput(input);
         }
 
-        return [id, { type, value, isCorrect, checked: false }]
+        if (type === 'select-one') {
+            value = this.getSelectValue(input);
+            isCorrect = this.isCorrectOneSelect(input);
+        }
+
+        return [id, { type, value, isCorrect, checked: false }];
     }
 
     getValuesFromInputs(inputs) {
@@ -447,9 +478,12 @@ class Page {
     }
 
     parsePointString(problemProgress) {
-        const problemProgressText = problemProgress.innerText ?? ""; //1/1 point (graded)
+        const problemProgressText = problemProgress.innerText ?? ""; //1/1 point (graded)      1 point possible (graded)
+        const possibleOnePoint = problemProgressText.includes('possible');
         const [point, _1, _2] = problemProgressText.split(' ');
-        const [currentPoint, allPoint] = point.split('/').map(piont => parseFloat(piont));
+        const [currentPoint, allPoint] = possibleOnePoint
+            ? [0, 1]
+            : point.split('/').map(piont => parseFloat(piont));
 
         let haveSomePoint = false;
         let haveFullPoint = false;
@@ -680,6 +714,15 @@ class Page {
         return elem;
     }
 
+    addToggles() {
+        const problemBlocks = this.getProblemBlocks();
+
+        problemBlocks.forEach(problemBlock => {
+            this.addToggle(problemBlock);
+        })
+    }
+
+
     addToggle(problemBlock) {
         const problemBlockId = this.getProblemBlockId(problemBlock);
         const values = this.data[problemBlockId] ?? {};
@@ -718,9 +761,15 @@ class Page {
 
         if (value.isCorrect === this.classes.correct) color = 'green';
         if (value.isCorrect === this.classes.incorrect) color = 'red';
-        if (value.isCorrect === this.classes.partiallyCorrect) color = 'oragne';
+        if (value.isCorrect === this.classes.partiallyCorrect) color = 'orange';
 
         return color;
+    }
+
+    setColorOptionBySelect(select, value, color) {
+        const options = this.getSelectOptions(select);
+        const option = options.find(option => option.value === value);
+        option.style.color = color;
     }
 
     changeHint(problemBlockId, inputs, show = false) {
@@ -741,6 +790,10 @@ class Page {
                 if (type === 'text') {
                     input.placeholder = show ? storeValue.value : '';
                 }
+
+                if (type === 'select-one') {
+                    this.setColorOptionBySelect(input, storeValue.value, color);
+                }
             }
         });
     }
@@ -758,7 +811,7 @@ class Page {
 
         problemBlocks.forEach(problemBlock => {
             const problemBlockId = this.getProblemBlockId(problemBlock);
-            const button = this.getButtonByProblemBlock(problemBlock);
+            // const button = this.getButtonByProblemBlock(problemBlock);
             const inputs = this.getInputsByProblemBlock(problemBlock);
             const values = this.getValuesFromInputs(inputs);
             const [validatedValues, wasValidetedFull, wasValidetedPartially] = this.validateValues(values, problemBlockId);
@@ -771,7 +824,7 @@ class Page {
             let observer = new MutationObserver(async mutationRecords => {
                 for (const item of mutationRecords) {
                     if (blockProblemId === item.target && item.addedNodes.length !== 0 && item.addedNodes.length !== 1) {
-                        console.log('observer', item.addedNodes.length, item);
+                        // console.log('observer', item.addedNodes.length, item);
                         const button = this.getButtonByProblemBlock(blockProblemId);
                         const buttonAriaDescribedby = button.getAttribute('aria-describedby');
                         const hash = this.getHashFromAriaDescribedby(buttonAriaDescribedby);
@@ -798,7 +851,7 @@ class Page {
             });
 
             this.data[problemBlockId] = validatedValues;
-            this.addToggle(problemBlock);
+            //this.addToggle(problemBlock);
         });
     }
 
@@ -810,19 +863,37 @@ class Page {
 
     compareData(data) {
         let isNeededUpdate = false;
+        let isNeededRescan = false;
 
         Object.keys(this.data).forEach(blockId => {
-            let values = data[blockId];
-            if ((!values && this.valuesChecked(this.data[blockId])) || (values && !this.valuesChecked(values) && this.valuesChecked(this.data[blockId]))) {
-                data[blockId] = this.data[blockId];
+            let values = data[blockId] ?? {};
+            if (
+                (this.isEmptyObject(values) && this.valuesChecked(this.data[blockId]))
+                || (!this.isEmptyObject(values) && !this.valuesChecked(values) && this.valuesChecked(this.data[blockId]))
+            ) {
+                //data[blockId] = this.data[blockId];
                 isNeededUpdate = true;
+            }
+
+            if (
+                (this.isEmptyObject(this.data[blockId]) && this.valuesChecked(values))
+                || (!this.isEmptyObject(this.data[blockId]) && !this.valuesChecked(this.data[blockId]) && this.valuesChecked(values))
+            ) {
+                this.data[blockId] = values;
+                isNeededRescan = true;
             }
         });
 
-        console.log('isNeededUpdate', isNeededUpdate)
+        this.addToggles();
+
+        console.log('isNeededUpdate', isNeededUpdate, isNeededRescan)
         if (isNeededUpdate) {
-            this.data = data;
+            //this.data = data;
             this.updateData();
+        }
+
+        if (isNeededRescan) {
+            //this.updateData();
         }
     }
 }
@@ -905,13 +976,13 @@ class Store {
     }
 
     async put(data, directory, block, token = this.auth.idToken) {
-        console.log('put', directory, block, data);
+        // console.log('put', directory, block, data);
         const escapingBlock = this.escapingString(block);
         const escapingData = this.escapingKeysOfObject(data);
-        console.log(escapingBlock, token);
+        // console.log(escapingBlock, token);
 
         const url = `${this.url}/${directory}/${escapingBlock}.json?auth=${token}`;
-        console.log(url);
+        // console.log(url);
 
         const response = await fetch(url, {
             method: 'PUT',
@@ -923,8 +994,8 @@ class Store {
 
 
         const res = await response.json();
-        console.log('res', res);
-        console.log(response);
+        // console.log('res', res);
+        // console.log(response);
         return res;
     }
 
@@ -948,25 +1019,25 @@ class Store {
     async fetch(directory, block, token = this.auth.idToken) {
         //const replaceBlock = block.replace(/\./g, '%2E').replace(/\_/g, '%5F');
         const escapingBlock = this.escapingString(block);
-        console.log('fetch', directory, block);
-        console.log(escapingBlock, token);
+        // console.log('fetch', directory, block);
+        // console.log(escapingBlock, token);
         if (!token) {
             throw new Error('У вас нет токена');
             return {}; //Promise.resolve([]); //'У вас нет токена'
         }
         const url = `${this.url}/${directory}/${escapingBlock}.json?auth=${token}`;
-        console.log(url);
+        // console.log(url);
 
         const response = await fetch(url)
         const data = await response.json() ?? {};
-        console.log(data);
+        // console.log(data);
         if (data && data?.error) {
             if (data?.error === 'Invalid path: Invalid token in path') {
                 // await this.auth.withEmailAndPassword();
                 // const idToken = this.auth.getIdToken();
-                console.log('idToken');
-                console.log(data?.error);
-                console.log(this.auth.idToken);
+                // console.log('idToken');
+                // console.log(data?.error);
+                // console.log(this.auth.idToken);
                 //await this.fetch(directory, block);
             }
             throw new Error(data?.error);
@@ -979,8 +1050,8 @@ class Store {
 
         const escapingData = this.escapingKeysOfObject(data, true);
 
-        console.log(JSON.stringify(data));
-        console.log(JSON.stringify(escapingData));
+        // console.log(JSON.stringify(data));
+        // console.log(JSON.stringify(escapingData));
 
         return escapingData;
     }
