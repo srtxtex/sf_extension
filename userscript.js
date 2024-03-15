@@ -1,24 +1,62 @@
 // ==UserScript==
 // @name         SF extension
-// @version      0.2
+// @version      0.3
 // @description  SF extension
 // @author       VirtusTex
 // @license      GPL-3.0 license
 // @grant        GM_xmlhttpRequest
 // @include https://apps.skillfactory.ru/*
-// @downloadURL https://raw.githubusercontent.com/srtxtex/sf_extension/main/userscript.js
-// @updateURL https://raw.githubusercontent.com/srtxtex/sf_extension/main/userscript.js
+// @include https://lms.skillfactory.ru/*
+// @downloadURL https://raw.githubusercontent.com/srtxtex/sf_extension/dev/userscript.js
+// @updateURL https://raw.githubusercontent.com/srtxtex/sf_extension/dev/userscript.js
 // ==/UserScript==
 
 const delay = 700;
 
-(function (window, undefind) {
-    'use strict';
-    const w = window;
+const hostname = {
+    apps: 'apps.skillfactory.ru',
+    lms: 'lms.skillfactory.ru',
+};
+
+const pathname = {
+    home: '/home',
+    sequentialBlock: '@sequential+block',
+    verticalBlock: '/xblock',
+};
+
+class Router {
+    document
+    location
+
+    constructor(document) {
+        this.document = document;
+        this.location = document.location;
+    }
+
+    async route(params) {
+        console.log('route', params)
+        params.forEach(async (param) => {
+            if (param.host === this.location.host && this.location.pathname.includes(param.path)) {
+                console.log('handler', param)
+                await param.handler();
+            }
+        });
+    }
+}
+
+async function handlerHomePage() {
+    const timerId = setInterval(() => {
+        const nav = document.getElementsByClassName('sf-course-menu sf-outline-page__course-menu');
+        if (Boolean(nav.length)) {
+            clearInterval(timerId);
+            start();
+        }
+    }, 100);
+
     function start() {
         const data = {
             '1': ['I. Операционная система Linux', 'I. Программирование на Python', 'I. Business English. Начинающие', 'I. Business English. Продолжающие', 'I. Программная инженерия. Часть I', 'I. Математические основы анализа данных. Часть I', 'I. Математические основы машинного обучения. Часть I', 'I. Цифровые компетенции в научной деятельности', 'I. Проектный практикум'],
-            '2': ['II. Основы SQL', 'II. Научный английский', 'II. Углубленное программирование на Python', 'II. Автоматизация администрирования MLOps', 'II. Программная инженерия. Часть II', 'II. Математические основы машинного обучения. Часть II', 'II. Математические основы анализа данных. Часть II', 'II. Глубокие нейронные сети на Python', 'II. Проектный практикум 2'],
+            '2': ['II. Основы SQL', 'II. Научный английский', 'II. Углубленное программирование на Python', 'II. Автоматизация администрирования MLOps', 'II. Программная инженерия. Часть II', 'II. Математические основы машинного обучения. Часть II', 'II. Математические основы анализа данных. Часть II', 'II. Глубокие нейронные сети на Python', 'II. Проектный практикум 2', 'II. Научный английский. Начинающие', 'II. Научный английский. Продолжающие'],
             //'Адаптационный блок', 'Выравнивающий курс по математике', 'Записи встреч (организационные, внеучебные)', 
         }
         const Pathname = {
@@ -116,19 +154,949 @@ const delay = 700;
             });
         }
 
-        if (w.location.pathname === Pathname.Home) {
+        if (location.pathname === Pathname.Home) {
             setTimeout(remakeNav, 1000);
         }
     }
-    if (w.self !== w.top) {
-        return;
-    } else {
-        const timerId = setInterval(() => {
-            const nav = document.getElementsByClassName('sf-course-menu sf-outline-page__course-menu');
-            if (Boolean(nav.length)) {
-                clearInterval(timerId);
-                start();
+}
+
+const router = new Router(document);
+
+const pageType = {
+    lms: 'lms.',
+    apps: 'apps.',
+}
+
+const directoryType = {
+    verticalBlocks: 'verticalBlocks',
+}
+
+class Page {
+    document
+    location
+    type
+    verticalBlock
+    store
+    data = {}
+    status = {}
+    classes = {
+        correct: 'correct',
+        incorrect: 'incorrect',
+        partiallyCorrect: 'partiallyCorrect',
+    }
+
+    constructor(document) {
+        this.document = document;
+        this.location = document.location;
+        this.type = this.getType();
+        this.verticalBlock = this.getVerticalBlock();
+        console.log('Page', this);
+    }
+
+    init(store) {
+        this.store = store;
+
+        if (this.type === pageType.apps) {
+            /*
+
+            */
+
+        } else if (this.type === pageType.lms) {
+            /*
+            сканируем страницу, получаем данные, навешиваем обработчики
+            проверяем данные            
+            */
+
+            this.initPage();
+            const directory = directoryType.verticalBlocks;
+            const data = this.loadDataFromStore(directory);
+            this.compareData(data);
+            this.showTips();
+
+
+            // const data = this.getData();
+            //перед тем как отправялть сверить со стором с сервера, есть ли новые правильные ответы
+            // const r = await courses.put(data);
+            // console.log('await courses.put(data);', r)
+
+        } else {
+
+        }
+    }
+
+    showTips() {
+        console.log('showTips')
+    }
+
+    getType() {
+        if (this.location.hostname.includes(pageType.lms)) {
+            return pageType.lms
+        } if (this.location.hostname.includes(pageType.apps)) {
+            return pageType.apps;
+        } else {
+            throw Error('Can not get Type');
+        }
+    }
+
+    getCourse() {
+        if (this.type === pageType.lms) {
+            return this.location.pathname.split('/')[3];
+        } else {
+            throw Error('Can not get Course');
+        }
+        /*
+        https://apps.skillfactory.ru/learning/course/course-v1:Skillfactory+URFUML2023+SEP2023/block-v1:Skillfactory+URFUML2023+SEP2023+type@sequential+block@d84d46b29d204104bd202c16e58511ae/block-v1:Skillfactory+URFUML2023+SEP2023+type@vertical+block@dcde44f54afe4b52914d1864e5d93b24
+        https://lms.skillfactory.ru/xblock/block-v1:Skillfactory+URFUML2023+SEP2023+type@vertical+block@dcde44f54afe4b52914d1864e5d93b24?show_title=0&show_bookmark_button=0&recheck_access=1&view=student_view&format=%D0%9C%D0%BE%D0%B4%D1%83%D0%BB%D1%8C
+        https://lms.skillfactory.ru/xblock/block-v1:Skillfactory+URFUML2023+SEP2023+type@vertical+block@2027ef13320942568cb8097d6250808b?show_title=0&show_bookmark_button=0&recheck_access=1&view=student_view&format=Модуль
+        */
+    }
+
+    getCourseName() {
+        const course = this.getCourse();
+        const [_, courseName] = course.split(':');
+        return courseName
+    }
+
+    getSequentialBlock() {
+        if (this.type === pageType.apps) {
+            return this.location.pathname.split('/')[4];
+        } else {
+            throw new Error('Can not get SequentialBlock');
+        }
+    }
+
+    getSequentialBlockHash() {
+        const sequentialBlock = this.getSequentialBlock();
+        const sequentialBlockHash = this.getHashFromBlock(sequentialBlock);
+        return sequentialBlockHash;
+    }
+
+    getVerticalBlock() {
+        if (this.type === pageType.lms) {
+            return this.location.pathname.split('/')[2];
+        } else if (this.type === pageType.apps) {
+            return this.location.pathname.split('/')[5];
+        } else {
+            throw new Error('Can not get VerticalBlock');
+        }
+    }
+
+    getVerticalBlockHash() {
+        const verticalBlock = this.getVerticalBlock();
+        const verticalBlockHash = this.getHashFromBlock(verticalBlock)
+        return verticalBlockHash;
+    }
+
+    getHashFromBlock(block) {
+        const [_1, _2, blockHash] = block.split('@');
+        return blockHash;
+    }
+
+    getProblemBlocks() {
+        return [...this.document.querySelectorAll('.vert')].filter(el => el.getAttribute('data-id').includes('problem+block'));
+    }
+
+    getProblemBlockByHash(hash) {
+        const problemBlocks = this.getProblemBlocks();
+        const problemBlock = problemBlocks.find(el => el.getAttribute('data-id').includes(hash))
+        return problemBlock;
+    }
+
+    getProblemBlockById(problemBlockId) {
+        const problemBlocks = this.getProblemBlocks();
+        const problemBlock = problemBlocks.find(el => el.getAttribute('data-id') === problemBlockId);
+        return problemBlock;
+    }
+
+    getProblemBlockId(problemBlock) {
+        const problemBlockId = problemBlock.getAttribute('data-id');
+        return problemBlockId;
+    }
+
+    getProblemBlockIdByHash(hash) {
+        const problemBlock = this.getProblemBlockByHash(hash);
+        const problemBlockId = this.getProblemBlockId(problemBlock);
+        return problemBlockId;
+    }
+
+    getInputsByProblemBlock(problemBlock) {
+        return [...problemBlock.getElementsByTagName('input')].filter(el => el.type !== "hidden" && !el.classList.contains('toggle-checkbox'));
+    }
+
+    getButtonByProblemBlock(problemBlock) {
+        const buttons = [...problemBlock.getElementsByTagName('button')].filter(el => el.classList.contains('submit'));
+        if (buttons.length !== 1) {
+            throw Error('Buttons in problem block is more then one');
+        }
+        const [button] = buttons;
+        return button;
+    }
+
+    getHashFromAriaDescribedby(ariaDescribedby) {
+        const [_1, _2, hash] = ariaDescribedby.split('_');
+        return hash;
+    }
+
+    getValuesByBlockHash(hash) {
+        const problemBlock = this.getProblemBlockByHash(hash);
+        const inputs = this.getInputsByProblemBlock(problemBlock);
+        const values = this.getValuesFromInputs(inputs);
+        //TODO не грлубокое копирование
+        return { ...values };
+    }
+
+    addEventListenerOnButton(button, buttonHandler) {
+        button.addEventListener('click', buttonHandler);
+    }
+
+    addEventListenerOnInputs(inputs, handler) {
+        inputs.forEach(input => {
+            input.addEventListener('change', handler);
+        });
+    }
+
+    isCorrectRadioOrCheckboxInput(label) {
+        //radio label class choicegroup_correct choicegroup_incorrect
+        //checkbox label class choicegroup_partially-correct только один правильный нет не правильных
+        //хотя бы один не правильный choicegroup_incorrect
+        // все правильные choicegroup_correct
+        const classes = {
+            correct: 'choicegroup_correct',
+            incorrect: 'choicegroup_incorrect',
+            partiallyCorrect: 'choicegroup_partially-correct',
+        }
+
+        const labelClass = this.isCorrectInput(label, classes);
+
+        return labelClass;
+    }
+
+    isCorrectTextInput(label) {
+        //text div parent class="incorrect" correct
+        const classes = {
+            correct: 'correct',
+            incorrect: 'incorrect',
+        }
+
+        const labelClass = this.isCorrectInput(label, classes);
+
+        return labelClass;
+    }
+
+    isCorrectInput(label, classes) {
+        for (const clas in classes) {
+            if (label === null) debugger;
+            const correctnessClass = label.classList.contains(classes[clas]);
+            /*
+            Uncaught (in promise) TypeError: Cannot read properties of null (reading 'classList')
+                at Page.isCorrectInput (userscript.html?name=SF-extension.user.js&id=77e765a6-c120-45f1-941a-3b79386c61d1:389:44)
+                at Page.isCorrectRadioOrCheckboxInput (userscript.html?name=SF-extension.user.js&id=77e765a6-c120-45f1-941a-3b79386c61d1:370:33)
+                at Page.getValuesFromInput (userscript.html?name=SF-extension.user.js&id=77e765a6-c120-45f1-941a-3b79386c61d1:407:30)
+                at userscript.html?name=SF-extension.user.js&id=77e765a6-c120-45f1-941a-3b79386c61d1:428:43
+                at Array.forEach (<anonymous>)
+                at Page.getValuesFromInputs (userscript.html?name=SF-extension.user.js&id=77e765a6-c120-45f1-941a-3b79386c61d1:427:16)
+                at Page.getValuesByBlockHash (userscript.html?name=SF-extension.user.js&id=77e765a6-c120-45f1-941a-3b79386c61d1:344:29)
+                at MutationObserver.<anonymous> (userscript.html?name=SF-extension.user.js&id=77e765a6-c120-45f1-941a-3b79386c61d1:599:45)
+            
+            */
+
+
+            if (correctnessClass) {
+                return clas;
             }
-        }, 100);
+        }
+
+        return '';
+    }
+
+    getValuesFromInput(input) {
+        const id = input.id;
+        const type = input.type;
+        let value;
+        let isCorrect;
+
+        if (['radio', 'checkbox'].includes(type)) {
+            value = input.checked;
+            const label = input.parentElement.querySelector(`[for="${id}"]`);
+            isCorrect = this.isCorrectRadioOrCheckboxInput(label);
+        }
+
+        if (type === 'text') {
+            value = input.value;
+            const label = input.parentElement;
+            isCorrect = this.isCorrectTextInput(label);
+        }
+
+        return [id, { type, value, isCorrect, checked: false }]
+    }
+
+    getValuesFromInputs(inputs) {
+        const values = {};
+
+        if (!inputs.length) {
+            return values;
+            //throw new Error('no fieldsets and inputs');
+        }
+
+        inputs.forEach(input => {
+            const [inputId, value] = this.getValuesFromInput(input);
+            values[inputId] = { ...value };
+        });
+
+        return values;
+    }
+
+    parsePointString(problemProgress) {
+        const problemProgressText = problemProgress.innerText ?? ""; //1/1 point (graded)
+        const [point, _1, _2] = problemProgressText.split(' ');
+        const [currentPoint, allPoint] = point.split('/').map(piont => parseFloat(piont));
+
+        let haveSomePoint = false;
+        let haveFullPoint = false;
+
+        if (currentPoint > 0) {
+            haveSomePoint = true;
+        }
+
+        if (currentPoint === allPoint) {
+            haveFullPoint = true;
+        }
+
+        return [haveSomePoint, haveFullPoint];
+    }
+
+    getProblemBlockStatusById(problemBlockId) {
+        const problemBlock = this.getProblemBlockById(problemBlockId);
+
+        const blockUsageId = problemBlock.querySelector(`[data-usage-id="${problemBlockId}"]`);
+        const graded = blockUsageId.getAttribute('data-graded') === 'True';
+        const hasScore = blockUsageId.getAttribute('data-has-score') === 'True';
+        //TODO при отправле правильного ответа, на странице hasScore не обновляется, такой же как при загрузке страницы
+
+        const blockProblemId = problemBlock.querySelector(`[data-problem-id="${problemBlockId}"]`);
+        const problemScore = parseFloat(blockProblemId.getAttribute('data-problem-score'));
+        //TODO при отправле правильного ответа, на странице data-problem-score не обновляется
+        const problemTotalPossible = parseInt(blockProblemId.getAttribute('data-problem-total-possible'));
+        const attemptsUsed = parseInt(blockProblemId.getAttribute('data-attempts-used'));
+
+        const problemProgress = problemBlock.querySelector(`[id='${problemBlockId}-problem-progress']`);
+        const [haveSomePoint, haveFullPoint] = this.parsePointString(problemProgress);
+
+        const status = { graded, hasScore, problemScore, problemTotalPossible, attemptsUsed, haveSomePoint, haveFullPoint };
+        this.status[problemBlockId] = status;
+
+        return status;
+    }
+
+    getData() {
+        return this.data;
+    }
+
+    scanPage() {
+
+    }
+
+    valuesChecked(values) {
+        const inputsId = Object.keys(values);
+        if (inputsId.length === 0) {
+            return false;
+        }
+        return inputsId.every(inputId => values[inputId].checked === true);
+    }
+
+    isValuesValidFull(values) {
+        return this.valuesChecked(values)
+            && Object.keys(values).some(inputId => values[inputId].isCorrect === this.classes.correct);
+    }
+
+    isValuesValidPartially(values) {
+        return this.valuesChecked(values)
+            && Object.keys(values).some(inputId => values[inputId].isCorrect === this.classes.partiallyCorrect);
+    }
+
+    isEmptyObject(obj) {
+        return Object.keys(obj).length === 0;
+    }
+
+    isNeededUpdate(problemBlockId, validates) {
+        const [_, wasValidetedFull, wasValidetedPartially] = validates;
+        const values = this.data[problemBlockId] ?? {};
+
+        //TODO если стоит не правильный ответ, по после выбора правильного и нажатия на кнопку values = undefined
+        const isValuesValidFull = this.isValuesValidFull(values);
+        const isValuesValidPartially = this.isValuesValidPartially(values);
+
+        const isNeededUpdate = (!this.isEmptyObject(values) && (wasValidetedFull || wasValidetedPartially))
+            || (!isValuesValidFull && !isValuesValidPartially && (wasValidetedFull || wasValidetedPartially))
+            || (!isValuesValidFull && isValuesValidPartially && wasValidetedFull);
+
+        console.log('isNeededUpdate', isNeededUpdate, problemBlockId, values);
+        return isNeededUpdate;
+    }
+
+    async updateValues(problemBlockId, values) {
+        this.data[problemBlockId] = { ...values };
+        this.updateData();
+    }
+
+    async updateData() {
+        const block = this.getVerticalBlock();
+        const directory = directoryType.verticalBlocks;
+        await this.store.savePage(this.data, directory, block);
+    }
+
+    validateValues(values, problemBlockId) {
+        const status = this.getProblemBlockStatusById(problemBlockId);
+        const { graded, hasScore, problemScore, problemTotalPossible, haveSomePoint, haveFullPoint } = status;
+        const validatedValues = {};
+        const wasValidetedFull = haveFullPoint; // (graded && hasScore && problemScore === problemTotalPossible) || haveFullPoint;
+        const wasValidetedPartially = haveSomePoint; // (graded && hasScore && problemScore !== problemTotalPossible && problemScore > 0) || haveSomePoint;
+
+        if (wasValidetedFull) {
+            Object.keys(values).forEach(inputId => validatedValues[inputId] = { ...values[inputId], checked: true });
+        } else if (wasValidetedPartially) {
+            //TODO Придумать что если не все правильные
+            //проверить все ли правильно или все неправильно, нужно записывать только когда тест пройден
+            Object.keys(values).forEach(inputId => validatedValues[inputId] = { ...values[inputId], checked: true });
+        }
+
+        return [validatedValues, wasValidetedFull, wasValidetedPartially];
+    }
+
+    buttonHandler = async (e) => {
+        console.log('buttonHandler');
+        let button = e.target;
+
+        if (e.target.tagName === 'SPAN') {
+            button = e.target.parentElement;
+        }
+
+        const buttonAriaDescribedby = button.getAttribute('aria-describedby');
+        const hash = this.getHashFromAriaDescribedby(buttonAriaDescribedby);
+        const values = this.getValuesByBlockHash(hash);
+        const problemBlockId = this.getProblemBlockIdByHash(hash);
+        const validates = this.validateValues(values, problemBlockId);
+        const isNeededUpdate = this.isNeededUpdate(problemBlockId, validates);
+        const [validatedValues, _1, _2] = validates;
+
+        if (isNeededUpdate) {
+            await this.updateValues(problemBlockId, validatedValues);
+        }
+    }
+
+    inputsHandler = async (e) => {
+        console.log(e.target.type);
+        console.log(e.target);
+    }
+
+    insertToggleCSS() {
+        const css = `        
+            .toggle {
+                cursor: pointer;
+                display: inline-block;
+                vertical-align: top;
+            }
+            
+            .toggle-switch {
+                margin-left: 30px;
+                display: inline-block;
+                background: #ccc;
+                border-radius: 16px;
+                width: 50px;
+                height: 24px;
+                position: relative;
+                vertical-align: middle;
+                transition: background 0.25s;
+            }
+            .toggle-switch:before, .toggle-switch:after {
+                content: "";
+            }
+            .toggle-switch:before {
+                display: block;
+                background: linear-gradient(to bottom, #fff 0%, #eee 100%);
+                border-radius: 50%;
+                box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+                width: 16px;
+                height: 16px;
+                position: absolute;
+                top: 4px;
+                left: 4px;
+                transition: left 0.25s;
+            }
+            .toggle:hover .toggle-switch:before {
+                background: linear-gradient(to bottom, #fff 0%, #fff 100%);
+                box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
+            }
+            .toggle-checkbox:checked + .toggle-switch {
+                background: #56c080;
+            }
+            .toggle-checkbox:checked + .toggle-switch:before {
+                left: 30px;
+            }
+            
+            .toggle-checkbox {
+                position: absolute;
+                visibility: hidden;
+            }
+            
+            .toggle-label {
+                margin-left: 5px;
+                position: relative;
+                top: 2px;
+            }
+            `;
+
+        const head = document.head || document.getElementsByTagName('head')[0];
+        const style = document.createElement('style');
+
+        head.appendChild(style);
+        style.type = 'text/css';
+        style.appendChild(document.createTextNode(css));
+    }
+
+    createToggle(toggleHandler) {
+        const toggle = this.createElement('label', 'toggle');
+        const input = this.createElement('input', 'toggle-checkbox', false, 'checkbox');
+        const div = this.createElement('div', 'toggle-switch');
+        const span = this.createElement('span', 'toggle-label', 'Hint');
+
+        toggle.insertAdjacentElement('beforeend', input);
+        toggle.insertAdjacentElement('beforeend', div);
+        toggle.insertAdjacentElement('beforeend', span);
+
+        input.addEventListener('change', toggleHandler);
+        this.insertToggleCSS();
+
+        return toggle;
+    }
+
+    createElement(tag, clas, text, type) {
+        const elem = document.createElement(tag);
+
+        clas && elem.classList.add(clas);
+        text && (elem.innerText = text);
+        type && (elem.type = type);
+
+        return elem;
+    }
+
+    addToggle(problemBlock) {
+        const problemBlockId = this.getProblemBlockId(problemBlock);
+        const values = this.data[problemBlockId] ?? {};
+
+        if (this.isEmptyObject(values)) return; //toggle.disabled  = true;
+
+        const h3 = problemBlock.querySelector('h3');
+        h3.style = 'display: inline-block';
+
+        const toggle = this.createToggle(this.toggleHandler);
+        h3.insertAdjacentElement('afterend', toggle);
+
+        const br = this.createElement('br');
+        toggle.insertAdjacentElement('afterend', br);
+
+
+    }
+
+    toggleHandler = (e) => {
+        const toggle = e.target;
+        const problemBlock = toggle.parentElement.parentElement.parentElement.parentElement;
+        const problemBlockId = this.getProblemBlockId(problemBlock);
+        const inputs = this.getInputsByProblemBlock(problemBlock);
+
+        if (toggle.checked) {
+            this.showHint(problemBlockId, inputs);
+        } else {
+            this.hideHint(problemBlockId, inputs);
+        }
+    }
+
+    getColorHint(value, show) {
+        let color = 'black';
+
+        if (!show) return color;
+
+        if (value.isCorrect === this.classes.correct) color = 'green';
+        if (value.isCorrect === this.classes.incorrect) color = 'red';
+        if (value.isCorrect === this.classes.partiallyCorrect) color = 'oragne';
+
+        return color;
+    }
+
+    changeHint(problemBlockId, inputs, show = false) {
+        const storeValues = this.data[problemBlockId];
+
+        inputs.forEach(input => {
+            const id = input.id;
+            const type = input.type;
+            const storeValue = storeValues[id];
+            const color = this.getColorHint(storeValue, show);
+
+            if (storeValue.checked) {
+                if (['radio', 'checkbox'].includes(type)) {
+                    const label = input.parentElement.querySelector(`[for="${id}"]`);
+                    label.style.color = color;
+                }
+
+                if (type === 'text') {
+                    input.placeholder = show ? storeValue.value : '';
+                }
+            }
+        });
+    }
+
+    showHint(problemBlockId, inputs) {
+        this.changeHint(problemBlockId, inputs, true);
+    }
+
+    hideHint(problemBlockId, inputs) {
+        this.changeHint(problemBlockId, inputs, false);
+    }
+
+    initPage() {
+        const problemBlocks = this.getProblemBlocks();
+
+        problemBlocks.forEach(problemBlock => {
+            const problemBlockId = this.getProblemBlockId(problemBlock);
+            const button = this.getButtonByProblemBlock(problemBlock);
+            const inputs = this.getInputsByProblemBlock(problemBlock);
+            const values = this.getValuesFromInputs(inputs);
+            const [validatedValues, wasValidetedFull, wasValidetedPartially] = this.validateValues(values, problemBlockId);
+
+            // this.addEventListenerOnButton(button, this.buttonHandler);
+            // this.addEventListenerOnInputs(inputs, this.inputsHandler);
+
+            const blockProblemId = problemBlock.querySelector(`[data-problem-id="${problemBlockId}"]`);
+
+            let observer = new MutationObserver(async mutationRecords => {
+                for (const item of mutationRecords) {
+                    if (blockProblemId === item.target && item.addedNodes.length !== 0 && item.addedNodes.length !== 1) {
+                        console.log('observer', item.addedNodes.length, item);
+                        const button = this.getButtonByProblemBlock(blockProblemId);
+                        const buttonAriaDescribedby = button.getAttribute('aria-describedby');
+                        const hash = this.getHashFromAriaDescribedby(buttonAriaDescribedby);
+                        const values = this.getValuesByBlockHash(hash);
+
+                        //console.log('values', JSON.stringify(values));
+                        const problemBlockId = this.getProblemBlockIdByHash(hash);
+                        //console.log('hash problemBlockId', hash, problemBlockId);
+
+                        const validates = this.validateValues(values, problemBlockId);
+                        const isNeededUpdate = this.isNeededUpdate(problemBlockId, validates);
+                        const [validatedValues, _1, _2] = validates;
+
+                        if (isNeededUpdate) {
+                            await this.updateValues(problemBlockId, validatedValues);
+                        }
+                    }
+                }
+            });
+
+            observer.observe(problemBlock, {
+                childList: true,
+                subtree: true,
+            });
+
+            this.data[problemBlockId] = validatedValues;
+            this.addToggle(problemBlock);
+        });
+    }
+
+    loadDataFromStore(directory) {
+        const store = this.store.get();
+        const data = store.data[directory];
+        return data;
+    }
+
+    compareData(data) {
+        let isNeededUpdate = false;
+
+        Object.keys(this.data).forEach(blockId => {
+            let values = data[blockId];
+            if ((!values && this.valuesChecked(this.data[blockId])) || (values && !this.valuesChecked(values) && this.valuesChecked(this.data[blockId]))) {
+                data[blockId] = this.data[blockId];
+                isNeededUpdate = true;
+            }
+        });
+
+        console.log('isNeededUpdate', isNeededUpdate)
+        if (isNeededUpdate) {
+            this.data = data;
+            this.updateData();
+        }
+    }
+}
+
+class Store {
+    store
+    url
+    auth
+    page
+
+    constructor(url, auth, page) {
+        this.url = url;
+        this.auth = auth;
+        this.page = page;
+        this.store = this.getStoreFromLocalStorage();
+        console.log('Store', this)
+    }
+
+    async init() {
+        const expireTime = Date.now() / 1000 - 60; //1800
+
+        if (this.store.time < expireTime) {
+            await this.fetchToken();
+        } else {
+            this.auth.setIdToken(this.store.idToken);
+        }
+
+        const directory = directoryType.verticalBlocks;
+        const block = this.page.getVerticalBlock();
+        await this.fetchStore(directory, block);
+        this.addStoreToLocalStorage();
+    }
+
+    async fetchToken() {
+        await this.auth.withEmailAndPassword();
+        this.store.idToken = this.auth.getIdToken();
+    }
+
+    async fetchStore(directory, block) {
+        const data = await this.fetch(directory, block);
+        this.store.data[directory] = data;
+        this.store.time = Date.now() / 1000;
+    }
+
+    get() {
+        return this.store
+    }
+
+    async savePage(data, directory, block) {
+        const res = await this.put(data, directory, block);
+        this.addStoreToLocalStorage();
+    }
+
+    addStoreToLocalStorage() {
+        localStorage.setItem('store', JSON.stringify(this.store));
+    }
+
+    getStoreFromLocalStorage() {
+        return JSON.parse(localStorage.getItem('store') || JSON.stringify(initStore))
+    }
+
+    escapingString(string, back = false) {
+        return back
+            ? string.replace(/&2E;/g, '.')
+            : string.replace(/\./g, '&2E;');
+    }
+
+    escapingKeysOfObject(obj, back = false) {
+        const newObj = {};
+
+        for (const key in obj) {
+            const value = obj[key];
+            const newKey = back
+                ? key.replace(/&2E;/g, '.')
+                : key.replace(/\./g, '&2E;');
+            newObj[newKey] = value;
+        }
+
+        return newObj;
+    }
+
+    async put(data, directory, block, token = this.auth.idToken) {
+        console.log('put', directory, block, data);
+        const escapingBlock = this.escapingString(block);
+        const escapingData = this.escapingKeysOfObject(data);
+        console.log(escapingBlock, token);
+
+        const url = `${this.url}/${directory}/${escapingBlock}.json?auth=${token}`;
+        console.log(url);
+
+        const response = await fetch(url, {
+            method: 'PUT',
+            body: JSON.stringify(escapingData),
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+
+        const res = await response.json();
+        console.log('res', res);
+        console.log(response);
+        return res;
+    }
+
+    async post(courses) {
+        const response = await fetch(`${this.url}/courses.json`, {
+            method: 'POST',
+            body: JSON.stringify(courses),
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        const data = await response.json();
+        return data;
+        //courses.id = data.name
+        //return courses
+
+        //.then(addToLocalStorage)
+        //.then(Question.renderList)
+    }
+
+    async fetch(directory, block, token = this.auth.idToken) {
+        //const replaceBlock = block.replace(/\./g, '%2E').replace(/\_/g, '%5F');
+        const escapingBlock = this.escapingString(block);
+        console.log('fetch', directory, block);
+        console.log(escapingBlock, token);
+        if (!token) {
+            throw new Error('У вас нет токена');
+            return {}; //Promise.resolve([]); //'У вас нет токена'
+        }
+        const url = `${this.url}/${directory}/${escapingBlock}.json?auth=${token}`;
+        console.log(url);
+
+        const response = await fetch(url)
+        const data = await response.json() ?? {};
+        console.log(data);
+        if (data && data?.error) {
+            if (data?.error === 'Invalid path: Invalid token in path') {
+                // await this.auth.withEmailAndPassword();
+                // const idToken = this.auth.getIdToken();
+                console.log('idToken');
+                console.log(data?.error);
+                console.log(this.auth.idToken);
+                //await this.fetch(directory, block);
+            }
+            throw new Error(data?.error);
+
+            return {}; //data.error
+            //{error: 'Invalid path: Invalid token in path'}
+            //error "Invalid data; couldn't parse key beginning at 1:2. Key value can't be empty or contain $ # [ ] / or ."
+
+        }
+
+        const escapingData = this.escapingKeysOfObject(data, true);
+
+        console.log(JSON.stringify(data));
+        console.log(JSON.stringify(escapingData));
+
+        return escapingData;
+    }
+}
+
+class Auth {
+    apiKey
+    email
+    password
+    idToken
+
+    constructor(apiKey, email = 'you@sf.ru', password = 'asshole') {
+        this.apiKey = apiKey;
+        this.email = email;
+        this.password = password;
+        console.log('Auth', this);
+    }
+
+    async withEmailAndPassword(email = this.email, password = this.password) {
+        const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${this.apiKey}`, {
+            method: 'POST',
+            body: JSON.stringify({
+                email, password,
+                returnSecureToken: true
+            }),
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+        this.idToken = await data.idToken;
+    }
+
+    getIdToken() {
+        return this.idToken
+    }
+
+    setIdToken(idToken) {
+        this.idToken = idToken;
+    }
+}
+
+const initStore = {
+    idToken: '',
+    time: 1610105083,
+    data: {},
+}
+
+const url = 'https://sf-extension-default-rtdb.europe-west1.firebasedatabase.app';
+const apiKey = 'AIzaSyDxbgMiXCv2jolu6HI3WKO5gRTay0G6W0A';
+
+async function handlerSequentialBlockPage() {
+
+}
+
+async function handlerVerticalBlockPage() {
+    /*
+    загружаю стор
+    проверяю устарели ли данные, если да - прохожу аунтефикацию и обновляю стор
+    сканирую страничку
+    есть есть блоки с вопросами, прохожусь по ним, после отправляю на сервер если есть правильные ответы
+    если в блоке вопрос отвечен правильно, записываю что точно правильные ответы
+    если вопрос не отвечен, выдаю подсказки
+    навешиваю обработчик на сабмит, при срабатывании проверяю есть ли правильные ответы, сохраняю с локальный стор, отправляю на сервер
+    //TODO при открытии новой страницы если тайминг не вышел, нужно токен передавать в класс чтобы заново аунтефикацию не проходить  
+    */
+
+    const page = new Page(document);
+    const auth = new Auth(apiKey);
+    const store = new Store(url, auth, page);
+    await store.init();
+    page.init(store);
+
+}
+
+
+(async function (window, undefind) {
+    'use strict';
+    const w = window;
+
+    console.log(w.location.pathname)
+    console.log(w.self)
+    console.log(w.top)
+
+    if (w.self !== w.top) {
+        if (w.self.location.hostname.includes(pageType.lms)) {
+            await router.route([
+                {
+                    host: hostname.lms,
+                    path: pathname.verticalBlock,
+                    handler: handlerVerticalBlockPage
+                }
+            ]);
+        } else {
+            return;
+        }
+    } else {
+        await router.route([
+            {
+                host: hostname.apps,
+                path: pathname.home,
+                handler: handlerHomePage,
+            },
+            {
+                host: hostname.apps,
+                path: pathname.sequentialBlock,
+                handler: handlerSequentialBlockPage
+            },
+            {
+                host: hostname.lms,
+                path: pathname.verticalBlock,
+                handler: handlerVerticalBlockPage
+            }
+        ]);
     }
 })(window);
+
+
