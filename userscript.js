@@ -204,28 +204,17 @@ class Page {
         } else if (this.type === pageType.lms) {
             /*
             сканируем страницу, получаем данные, навешиваем обработчики
-            проверяем данные            
+            проверяем данные  
+            //перед тем как отправялть сверить со стором с сервера, есть ли новые правильные ответы          
             */
 
             this.initPage();
             const directory = directoryType.verticalBlocks;
             const data = this.loadDataFromStore(directory);
             this.compareData(data);
-            this.showTips();
-
-
-            // const data = this.getData();
-            //перед тем как отправялть сверить со стором с сервера, есть ли новые правильные ответы
-            // const r = await courses.put(data);
-            // console.log('await courses.put(data);', r)
-
         } else {
 
         }
-    }
-
-    showTips() {
-        console.log('showTips')
     }
 
     getType() {
@@ -322,7 +311,9 @@ class Page {
     getInputsByProblemBlock(problemBlock) {
         const inputs = [...problemBlock.getElementsByTagName('input')].filter(el => el.type !== "hidden" && !el.classList.contains('toggle-checkbox'));
         const selects = [...problemBlock.getElementsByTagName('select')];
-        return [...inputs, ...selects];
+        const textarea = [...problemBlock.getElementsByTagName('textarea')].filter(el => el.getAttribute('data-mode') === 'python');
+
+        return [...inputs, ...selects, ...textarea];
     }
 
     getButtonByProblemBlock(problemBlock) {
@@ -381,16 +372,31 @@ class Page {
             incorrect: 'incorrect',
         };
 
-        const label = input.parentElement;
-        const labelClass = this.isCorrectInput(label, classes);
+        const div = input.parentElement;
+        const divClass = this.isCorrectInput(div, classes);
 
-        return labelClass;
+        return divClass;
     }
 
-    isCorrectInput(label, classes) {
+    isCorrectTextareaInput(input) {
+        //textarea span parent class="incorrect" correct
+        const classes = {
+            correct: 'correct',
+            incorrect: 'incorrect',
+        };
+
+        const name = input.name;
+        const id = name.replace('input', 'status');
+        const span = input.parentElement.querySelector(`[id="${id}"]`);;
+        const spanClass = this.isCorrectInput(span, classes);
+
+        return spanClass;
+    }
+
+    isCorrectInput(elem, classes) {
         for (const clas in classes) {
-            if (label === null) debugger;
-            const correctnessClass = label.classList.contains(classes[clas]);
+            if (elem === null) debugger;
+            const correctnessClass = elem.classList.contains(classes[clas]);
             /*
             Uncaught (in promise) TypeError: Cannot read properties of null (reading 'classList')
                 at Page.isCorrectInput (userscript.html?name=SF-extension.user.js&id=77e765a6-c120-45f1-941a-3b79386c61d1:389:44)
@@ -451,6 +457,11 @@ class Page {
         if (type === 'text') {
             value = input.value;
             isCorrect = this.isCorrectTextInput(input);
+        }
+
+        if (type === 'textarea') {
+            value = input.value;
+            isCorrect = this.isCorrectTextareaInput(input);
         }
 
         if (type === 'select-one') {
@@ -524,10 +535,6 @@ class Page {
 
     getData() {
         return this.data;
-    }
-
-    scanPage() {
-
     }
 
     valuesChecked(values) {
@@ -737,8 +744,6 @@ class Page {
 
         const br = this.createElement('br');
         toggle.insertAdjacentElement('afterend', br);
-
-
     }
 
     toggleHandler = (e) => {
@@ -772,6 +777,11 @@ class Page {
         option.style.color = color;
     }
 
+    setDivTitleByTextarea(textarea, value, show) {
+        const div = textarea.parentElement.querySelector(`.CodeMirror-wrap`);
+        div.title = show ? value : '';
+    }
+
     changeHint(problemBlockId, inputs, show = false) {
         const storeValues = this.data[problemBlockId];
 
@@ -781,14 +791,22 @@ class Page {
             const storeValue = storeValues[id];
             const color = this.getColorHint(storeValue, show);
 
-            if (storeValue.checked) {
+            if (storeValue.checked && Boolean(storeValue.isCorrect)) {
                 if (['radio', 'checkbox'].includes(type)) {
                     const label = input.parentElement.querySelector(`[for="${id}"]`);
                     label.style.color = color;
+                    const img = label.querySelector(`img`);
+                    if (img) {
+                        img.style.border = show ? `solid 1px ${color}` : 'none';
+                    }
                 }
 
                 if (type === 'text') {
                     input.placeholder = show ? storeValue.value : '';
+                }
+
+                if (type === 'textarea') {
+                    this.setDivTitleByTextarea(input, storeValue.value, show);
                 }
 
                 if (type === 'select-one') {
