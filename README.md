@@ -1,6 +1,12 @@
 # sf_extension
-Расширение для LMS SF в виде userscript для Tampermonkey
+Приложение представляющее собой расширение для LMS SF в виде userscript для Tampermonkey
 
+## Функционал
+1. Меняет дизайн списка предметов слева на главной странице
+2. Показывает подскази в тестах
+
+## Описание функционала
+### Меняет дизайн списка предметов слева на главной странице
 При открытии страницы курса левая панель меняется в дизайне
 
 https://apps.skillfactory.ru/learning/course/course-v1:Skillfactory+URFUML2023+SEP2023/home
@@ -9,8 +15,26 @@ https://apps.skillfactory.ru/learning/course/course-v1:Skillfactory+URFUML2023+S
 
 ![Screenshot 0](https://github.com/srtxtex/sf_extension/blob/main/images/0.png)
 
+### Показывает подскази в тестах
+В блоках где есть задания, справа от номера задания появляется переключатель показывающий подсказки. 
+Если переключателя нет - подсказок в базе нет.
+Подсказки заносятся в базу при открытии страницы с пройденым заданием или в процессе его прохождения при правильном ответе.
+Если в эти моменты расширение работало (было установлено и включено), ответы отправятся в базу и будут доступны всем пользователям приложения.
+Если кнопки подсказки нет или она пропала после отправки ответа, перезагрузите страницу. Если это не помогло, можете написать мне с примером - скорее всего подсказки для данного типа ввода не разработаны.
+
+Как выглядят подсказки:
+
+- для checkbox и radio элементов правильный ответ будет зеленым цветом если это текст и обведен зеленой рамкой если это картинка.
+
+- для select элменетов нужный option будет зеленого цвета.
+
+- для text элементов правильный ответ будет показан в его placeholder.
+
+- для textarea элементов при наведелнии на него будет показан title (tooltip) с правильным ответом.
+
 ## Установка
-1. Зайти в интернет-магазин для своего браузера и установить бесплатное расширение Tampermonkey
+### Установить Tampermonkey
+Зайти в интернет-магазин для своего браузера и установить бесплатное расширение Tampermonkey
 
 Здесь все инструкции и ссылки для всех браузеров
 https://www.tampermonkey.net/
@@ -29,31 +53,70 @@ https://addons.opera.com/ru/extensions/details/tampermonkey-beta/
 Видео инструкция
 https://www.youtube.com/watch?v=8tyjJD65zws
 
+### Добавить userscript
+Скопировать код ниже для main версии 
 
-2. Скопировать содержимое файла userscript.js и добавить код в Tampermonkey в качестве нового юзрскрипта
+```
+// ==UserScript==
+// @name         SF extension
+// @version      0.1
+// @author       VirtusTex
+// @updateURL https://raw.githubusercontent.com/srtxtex/sf_extension/main/userscript.js
+// ==/UserScript==
+```
+или следующий код для dev версии
+
+```
+// ==UserScript==
+// @name         SF extension
+// @version      0.1
+// @author       VirtusTex
+// @updateURL https://raw.githubusercontent.com/srtxtex/sf_extension/dev/userscript.js
+// ==/UserScript==
+```
+
+и добавить его в Tampermonkey в качестве нового юзрскрипта
 
 Нажать на иконку в трее браузера, выбрать "Панель управления"
 
-![Screenshot 1](https://github.com/srtxtex/sf_extension/blob/main/images/1.png)
+![Screenshot 1](https://github.com/srtxtex/sf_extension/blob/dev/images/1.png)
 
 Нажать на таб где плюс, выглядит как открыть новую вкладку
 
-![Screenshot 2](https://github.com/srtxtex/sf_extension/blob/main/images/2.png)
+![Screenshot 2](https://github.com/srtxtex/sf_extension/blob/dev/images/2.png)
 
 Выделить все что внутри и удалить
 
-![Screenshot 3](https://github.com/srtxtex/sf_extension/blob/main/images/3.png)
+![Screenshot 3](https://github.com/srtxtex/sf_extension/blob/dev/images/3.png)
 
 Вставить код из userscript.js и сохранить (Ctrl+S или Файл->Сохранить)
 
-![Screenshot 4](https://github.com/srtxtex/sf_extension/blob/main/images/4.png)
+![Screenshot 4](https://github.com/srtxtex/sf_extension/blob/dev/images/4.png)
 
-![Screenshot 5](https://github.com/srtxtex/sf_extension/blob/main/images/5.png)
+![Screenshot 5](https://github.com/srtxtex/sf_extension/blob/dev/images/5.png)
+
+Перейти во вкладу "Установленные скрипты" и нажать на строку со временем в строке установленного скрипта в колонке "Обновлен"
+
+![Screenshot 6](https://github.com/srtxtex/sf_extension/blob/dev/images/6.png)
+
+Появится окно обновления, нажать кнопку "Обновить". Далее обновления будут скачиваться сами при появлении новой версии, иногда при автообновлении будет появзяться такое же окно.
+
+![Screenshot 7](https://github.com/srtxtex/sf_extension/blob/dev/images/7.png)
+
+Скрипт работает если включен данный переключатель
+
+![Screenshot 8](https://github.com/srtxtex/sf_extension/blob/dev/images/8.png)
+
+Весь Tampermonkey со всеми его включенными скриптами работает если сам Tampermonkey включен как показанно здесь
+
+![Screenshot 9](https://github.com/srtxtex/sf_extension/blob/dev/images/9.png)
 
 ## Планы
 1. Поработать с прогресс баром
+2. Добавить подсказки на основе обученных моделей
 
 ## Обратная связь
-Создавайте issues
+Создавайте issues или пишите мне
 
 Telegram @VirtusTex
+Email srtxtex@gmail.com
