@@ -63,7 +63,7 @@ https://apps.skillfactory.ru/learning/course/course-v1:Skillfactory+URFUML2023+S
 ## Установка
 
 <details>
-<summary>Установить Tampermonkey</summary>
+<summary>1. Установить Tampermonkey</summary>
 
 Зайти в интернет-магазин для своего браузера и установить бесплатное расширение Tampermonkey
 
@@ -86,7 +86,7 @@ https://www.youtube.com/watch?v=8tyjJD65zws
 </details>
 
 <details>
-<summary>Добавить userscript</summary>
+<summary>2. Добавить userscript</summary>
 
 Скопировать код ниже для main версии 
 
@@ -109,7 +109,9 @@ https://www.youtube.com/watch?v=8tyjJD65zws
 // ==/UserScript==
 ```
 
-и добавить его в Tampermonkey в качестве нового юзрскрипта
+и добавить его в Tampermonkey в качестве нового юзрскрипта.
+
+Можно уставноить оба как два отдельных скрипта, но одновременно их включать нельзя. При необходимости один включить, второй выключить. Ниже описанно как. В dev ветке появляется экспериментальый функционал, который потом может перейти в main.
 
 Нажать на иконку в трее браузера, выбрать "Панель управления"
 
