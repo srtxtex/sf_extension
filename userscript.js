@@ -802,7 +802,9 @@ class Page {
                 }
 
                 if (type === 'text') {
-                    input.placeholder = show ? storeValue.value : '';
+                    input.placeholder = show
+                        ? (color !== 'red' ? storeValue.value : '')
+                        : '';
                 }
 
                 if (type === 'textarea') {
