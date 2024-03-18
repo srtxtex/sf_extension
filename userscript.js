@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         SF extension
-// @version      0.5
+// @version      0.6
 // @description  SF extension
 // @author       VirtusTex
 // @license      GPL-3.0 license
@@ -931,7 +931,7 @@ class Store {
     }
 
     async init() {
-        const expireTime = Date.now() / 1000 - 60; //1800
+        const expireTime = Date.now() / 1000 - 60000000; //1800
 
         if (this.store.time < expireTime) {
             await this.fetchToken();
@@ -993,28 +993,20 @@ class Store {
         return newObj;
     }
 
-    async put(data, directory, block, token = this.auth.idToken) {
-        // console.log('put', directory, block, data);
+    async put(body, directory, block) {
         const escapingBlock = this.escapingString(block);
-        const escapingData = this.escapingKeysOfObject(data);
-        // console.log(escapingBlock, token);
-
-        const url = `${this.url}/${directory}/${escapingBlock}.json?auth=${token}`;
-        // console.log(url);
-
-        const response = await fetch(url, {
+        const escapingBody = this.escapingKeysOfObject(body);
+        const path = { directory, block: escapingBlock };
+        const options = {
             method: 'PUT',
-            body: JSON.stringify(escapingData),
+            body: JSON.stringify(escapingBody),
             headers: {
                 'Content-Type': 'application/json'
             }
-        });
-
-
-        const res = await response.json();
-        // console.log('res', res);
-        // console.log(response);
-        return res;
+        }
+        const data = await this.makeRequestWithErrorHandlers(path, options);
+        const escapingData = this.escapingKeysOfObject(data, true);
+        return escapingData;
     }
 
     async post(courses) {
@@ -1034,42 +1026,43 @@ class Store {
         //.then(Question.renderList)
     }
 
-    async fetch(directory, block, token = this.auth.idToken) {
-        //const replaceBlock = block.replace(/\./g, '%2E').replace(/\_/g, '%5F');
-        const escapingBlock = this.escapingString(block);
-        // console.log('fetch', directory, block);
-        // console.log(escapingBlock, token);
-        if (!token) {
-            throw new Error('У вас нет токена');
-            return {}; //Promise.resolve([]); //'У вас нет токена'
-        }
-        const url = `${this.url}/${directory}/${escapingBlock}.json?auth=${token}`;
-        // console.log(url);
-
-        const response = await fetch(url)
+    async makeRequest(path, options = {}) {
+        console.log('path', path);
+        const url = this.getUrl(path);
+        const response = await fetch(url, options);
         const data = await response.json() ?? {};
-        // console.log(data);
-        if (data && data?.error) {
-            if (data?.error === 'Invalid path: Invalid token in path') {
-                // await this.auth.withEmailAndPassword();
-                // const idToken = this.auth.getIdToken();
-                // console.log('idToken');
-                // console.log(data?.error);
-                // console.log(this.auth.idToken);
-                //await this.fetch(directory, block);
+        return data;
+    }
+
+    async makeRequestWithErrorHandlers(path, options) {
+        let data = await this.makeRequest(path, options);
+
+        if (data?.error) {
+            if (data.error === 'Permission denied') {
+                await this.fetchToken();
+                this.addStoreToLocalStorage();
+                data = await this.makeRequest(path, options);
+            } else {
+                throw new Error(data.error);
             }
-            throw new Error(data?.error);
-
-            return {}; //data.error
+            //{error: 'Permission denied'}
             //{error: 'Invalid path: Invalid token in path'}
-            //error "Invalid data; couldn't parse key beginning at 1:2. Key value can't be empty or contain $ # [ ] / or ."
-
+            //{error: "Invalid data; couldn't parse key beginning at 1:2. Key value can't be empty or contain $ # [ ] / or ."}
         }
 
-        const escapingData = this.escapingKeysOfObject(data, true);
+        return data;
+    }
 
-        // console.log(JSON.stringify(data));
-        // console.log(JSON.stringify(escapingData));
+    getUrl(path) {
+        const url = `${this.url}/${path.directory}/${path.block}.json?auth=${this.auth.idToken}`;
+        return url;
+    }
+
+    async fetch(directory, block) {
+        const escapingBlock = this.escapingString(block);
+        const path = { directory, block: escapingBlock };
+        const data = await this.makeRequestWithErrorHandlers(path);
+        const escapingData = this.escapingKeysOfObject(data, true);
 
         return escapingData;
     }
@@ -1101,7 +1094,8 @@ class Auth {
         });
 
         const data = await response.json();
-        this.idToken = await data.idToken;
+        const idToken = await data.idToken;
+        this.setIdToken(idToken);
     }
 
     getIdToken() {
