@@ -2,11 +2,10 @@
 Приложение представляющее собой расширение для LMS SF в виде userscript для Tampermonkey
 
 ## Функционал
-1. Меняет дизайн списка предметов слева на главной странице
-2. Показывает подсказки в тестах
 
-## Описание функционала
-### Меняет дизайн списка предметов слева на главной странице
+<details>
+<summary>1. Меняет дизайн списка предметов слева на главной странице</summary>
+
 При открытии страницы курса левая панель меняется в дизайне
 
 https://apps.skillfactory.ru/learning/course/course-v1:Skillfactory+URFUML2023+SEP2023/home
@@ -14,8 +13,10 @@ https://apps.skillfactory.ru/learning/course/course-v1:Skillfactory+URFUML2023+S
 Предметы разбиры на блоки, можно скрыть, можно раскрыть. Немного уменьшена высота кнопок и увеличина ширина чтобы на странице больше умещалось.
 
 ![Screenshot 0](https://github.com/srtxtex/sf_extension/blob/main/images/0.png)
+</details>
+<details>
+<summary>2. Показывает подсказки в тестах</summary>
 
-### Показывает подсказки в тестах
 В блоках где есть задания, справа от номера задания появляется переключатель показывающий подсказки. 
 Если переключателя нет - подсказок в базе нет.
 
@@ -33,24 +34,37 @@ https://apps.skillfactory.ru/learning/course/course-v1:Skillfactory+URFUML2023+S
 
 Как выглядят подсказки:
 
-- для checkbox и radio элементов правильный ответ будет зеленым цветом если это текст и обведен зеленой рамкой если это картинка. Если тип checkbox и правильных ответов несколько, но в базе только часть правильных ответов (еще не все), они буду выделены оранжевым.
+<details>
+<summary>для checkbox и radio элементов правильный ответ будет зеленым цветом если это текст и обведен зеленой рамкой если это картинка. Если тип checkbox и правильных ответов несколько, но в базе только часть правильных ответов (еще не все), они буду выделены оранжевым.</summary>
 
 ![Screenshot 12](https://github.com/srtxtex/sf_extension/blob/dev/images/12.png)
+</details>
 
-- для select элменетов нужный option будет зеленого цвета.
+<details>
+<summary>для select элменетов нужный option будет зеленого цвета.</summary>
 
 ![Screenshot 13](https://github.com/srtxtex/sf_extension/blob/dev/images/13.png)
+</details>
 
-- для text элементов правильный ответ будет показан в его placeholder.
+<details>
+<summary>для text элементов правильный ответ будет показан в его placeholder.</summary>
 
 ![Screenshot 14](https://github.com/srtxtex/sf_extension/blob/dev/images/14.png)
+</details>
 
-- для textarea элементов при наведелнии на него будет показан title (tooltip) с правильным ответом.
+<details>
+<summary>для textarea элементов при наведелнии на него будет показан title (tooltip) с правильным ответом.</summary>
 
 ![Screenshot 15](https://github.com/srtxtex/sf_extension/blob/dev/images/15.png)
+</details>
+
+</details>
 
 ## Установка
-### Установить Tampermonkey
+
+<details>
+<summary>Установить Tampermonkey</summary>
+
 Зайти в интернет-магазин для своего браузера и установить бесплатное расширение Tampermonkey
 
 Здесь все инструкции и ссылки для всех браузеров
@@ -69,8 +83,11 @@ https://addons.opera.com/ru/extensions/details/tampermonkey-beta/
 
 Видео инструкция
 https://www.youtube.com/watch?v=8tyjJD65zws
+</details>
 
-### Добавить userscript
+<details>
+<summary>Добавить userscript</summary>
+
 Скопировать код ниже для main версии 
 
 ```
@@ -127,6 +144,7 @@ https://www.youtube.com/watch?v=8tyjJD65zws
 Весь Tampermonkey со всеми его включенными скриптами работает если сам Tampermonkey включен как показанно здесь
 
 ![Screenshot 9](https://github.com/srtxtex/sf_extension/blob/dev/images/9.png)
+</details>
 
 ## Планы
 1. Поработать с прогресс баром
