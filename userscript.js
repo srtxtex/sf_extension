@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         SF extension
-// @version      0.6
+// @version      0.7
 // @description  SF extension
 // @author       VirtusTex
 // @license      GPL-3.0 license
@@ -611,6 +611,7 @@ class Page {
         const oldValues = this.data[problemBlockId];
         const newValues = {};
         let newValuesWasAdded = false;
+        let oldValuesWasAdded = false;
         console.log('mergeValues problemBlockId', problemBlockId);
 
         if (case3) {
@@ -628,6 +629,7 @@ class Page {
                     newValues[inputId] = oldValue;
                     console.log('2 newValues[inputId] = oldValue');
                     console.log(inputId, oldValue, value);
+                    oldValuesWasAdded ||= true;
                 }
                 if (oldValue.isCorrect && (oldValue.isCorrect !== this.classes.correct) && value.isCorrect && (value.isCorrect !== this.classes.incorrect)) {
                     newValues[inputId] = value;
@@ -640,14 +642,14 @@ class Page {
 
         const mergedValues = { ...values, ...newValues };
 
-        return { mergedValues, newValuesWasAdded };
+        return { mergedValues, newValuesWasAdded, oldValuesWasAdded };
     }
 
     async updateValues(problemBlockId, values, cases) {
-        const { mergedValues, newValuesWasAdded } = this.mergeValues(problemBlockId, values, cases);
+        const { mergedValues, newValuesWasAdded, oldValuesWasAdded } = this.mergeValues(problemBlockId, values, cases);
         this.data[problemBlockId] = mergedValues;
         console.log('updateValues', newValuesWasAdded);
-        if (newValuesWasAdded) {
+        if (newValuesWasAdded || oldValuesWasAdded) {
             await this.updateData();
         }
     }
@@ -808,6 +810,7 @@ class Page {
         let color = 'black';
 
         if (!show) return color;
+        if (!value.isCorrect) return color;
 
         if (value.isCorrect === this.classes.correct) color = 'green';
         if (value.isCorrect === this.classes.incorrect) color = 'red';
@@ -829,11 +832,15 @@ class Page {
 
     changeHint(problemBlockId, inputs, show = false) {
         const storeValues = this.data[problemBlockId];
+        if (Object.keys(storeValues).length !== inputs.length) {
+            //console.error('Object.keys(storeValues).length !== inputs.length')
+            //if type radio
+        }
 
         inputs.forEach(input => {
             const id = input.id;
             const type = input.type;
-            const storeValue = storeValues[id];
+            const storeValue = storeValues[id] ?? {};
             const color = this.getColorHint(storeValue, show);
 
             if (storeValue.checked && Boolean(storeValue.isCorrect)) {
@@ -899,12 +906,13 @@ class Page {
                         const validates = this.validateValues(values, problemBlockId);
                         const { isNeededUpdate, cases } = this.isNeededUpdate(problemBlockId, validates);
                         const [validatedValues, _1, _2] = validates;
-                        const problemBlock = this.getProblemBlockById(problemBlockId);
-                        this.addToggle(problemBlock);
 
                         if (isNeededUpdate) {
                             await this.updateValues(problemBlockId, validatedValues, cases);
                         }
+
+                        const problemBlock = this.getProblemBlockById(problemBlockId);
+                        this.addToggle(problemBlock);
                     }
                 }
             });
@@ -915,7 +923,6 @@ class Page {
             });
 
             this.data[problemBlockId] = validatedValues;
-            //this.addToggle(problemBlock);
         });
     }
 
@@ -925,30 +932,35 @@ class Page {
         return data;
     }
 
+    //TODO выставляется ли isCorrect" при правильном ответе и при скане страницы если уже отвечено
+
     async compareData(data) {
-        console.log('compareData');
+        console.log('compareData', JSON.stringify(data));
         let isNeededUpdateData = false;
         let newValuesWasAddedToData = false;
+        let oldValuesWasAddedToData = false;
         const problemBlocksId = Object.keys({ ...this.data, ...data });
 
         problemBlocksId.forEach(problemBlockId => {
             const values = data[problemBlockId] ?? {};
+            console.log('problemBlocksId.forEach', problemBlockId, JSON.stringify(values));
             const validates = this.validateValues(values, problemBlockId);
             const { isNeededUpdate, cases } = this.isNeededUpdate(problemBlockId, validates);
             const [validatedValues, _1, _2] = validates;
             isNeededUpdateData ||= isNeededUpdate;
 
             if (isNeededUpdate) {
-                const { mergedValues, newValuesWasAdded } = this.mergeValues(problemBlockId, validatedValues, cases);
+                const { mergedValues, newValuesWasAdded, oldValuesWasAdded } = this.mergeValues(problemBlockId, validatedValues, cases);
                 this.data[problemBlockId] = mergedValues;
                 newValuesWasAddedToData ||= newValuesWasAdded;
+                oldValuesWasAddedToData ||= oldValuesWasAdded;
             }
         });
 
         this.addToggles();
 
-        console.log('isNeededUpdateData', isNeededUpdateData, newValuesWasAddedToData);
-        if (isNeededUpdateData && newValuesWasAddedToData) {
+        console.log('isNeededUpdateData', isNeededUpdateData, newValuesWasAddedToData, oldValuesWasAddedToData);
+        if (isNeededUpdateData && (newValuesWasAddedToData || oldValuesWasAddedToData)) {
             await this.updateData();
         }
 
