@@ -193,7 +193,7 @@ class Page {
         console.log('Page', this);
     }
 
-    init(store) {
+    async init(store) {
         this.store = store;
 
         if (this.type === pageType.apps) {
@@ -211,7 +211,7 @@ class Page {
             this.initPage();
             const directory = directoryType.verticalBlocks;
             const data = this.loadDataFromStore(directory);
-            this.compareData(data);
+            await this.compareData(data);
         } else {
 
         }
@@ -336,16 +336,6 @@ class Page {
         const values = this.getValuesFromInputs(inputs);
         //TODO не грлубокое копирование
         return { ...values };
-    }
-
-    addEventListenerOnButton(button, buttonHandler) {
-        button.addEventListener('click', buttonHandler);
-    }
-
-    addEventListenerOnInputs(inputs, handler) {
-        inputs.forEach(input => {
-            input.addEventListener('change', handler);
-        });
     }
 
     isCorrectRadioOrCheckboxInput(input) {
@@ -546,6 +536,12 @@ class Page {
     }
 
     isValuesValidFull(values) {
+        //TODO зависит от типа
+        return this.valuesChecked(values)
+            && Object.keys(values).every(inputId => values[inputId].isCorrect === this.classes.correct);
+    }
+
+    isValuesValidSome(values) {
         return this.valuesChecked(values)
             && Object.keys(values).some(inputId => values[inputId].isCorrect === this.classes.correct);
     }
@@ -559,25 +555,101 @@ class Page {
         return Object.keys(obj).length === 0;
     }
 
+    getTypesValues(values) {
+        const types = [...new Set(Object.keys(values).map(inputId => values[inputId].type))];
+        return types;
+    }
+
+    isValuesValidFullCheckbox(values) {
+        const types = this.getTypesValues(values);
+
+        if (types.length > 1) return true;
+        if (types[0] !== 'checkbox') return true;
+
+        const isValuesValidSome = this.isValuesValidSome(values);
+        const isValuesValidPartially = this.isValuesValidPartially(values);
+
+        if (isValuesValidSome && !isValuesValidPartially) {
+            return false;
+        }
+        return true;
+    }
+
     isNeededUpdate(problemBlockId, validates) {
-        const [_, wasValidetedFull, wasValidetedPartially] = validates;
+        const [newValues, wasValidetedFull, wasValidetedPartially] = validates;
         const values = this.data[problemBlockId] ?? {};
 
         //TODO если стоит не правильный ответ, по после выбора правильного и нажатия на кнопку values = undefined
         const isValuesValidFull = this.isValuesValidFull(values);
+        const isValuesValidSome = this.isValuesValidSome(values);
         const isValuesValidPartially = this.isValuesValidPartially(values);
 
-        const isNeededUpdate = (!this.isEmptyObject(values) && (wasValidetedFull || wasValidetedPartially))
-            || (!isValuesValidFull && !isValuesValidPartially && (wasValidetedFull || wasValidetedPartially))
-            || (!isValuesValidFull && isValuesValidPartially && wasValidetedFull);
+        // const newIsValuesValidFull = this.isValuesValidFull(newValues);
+        // const newIsValuesValidSome = this.isValuesValidSome(newValues);
+        // const newIsValuesValidPartially = this.isValuesValidPartially(newValues);
 
-        console.log('isNeededUpdate', isNeededUpdate, problemBlockId, values);
-        return isNeededUpdate;
+        const isValuesValidFullCheckbox = this.isValuesValidFullCheckbox(values);
+
+        const case1 = this.isEmptyObject(values) && (wasValidetedFull || wasValidetedPartially);
+        const case2 = !this.isEmptyObject(values) && (!isValuesValidFull && !isValuesValidSome && !isValuesValidPartially) && (wasValidetedFull || wasValidetedPartially);
+        const case3 = !this.isEmptyObject(values) && !isValuesValidFull && (isValuesValidSome || isValuesValidPartially) && wasValidetedPartially && isValuesValidFullCheckbox;
+        const case4 = !this.isEmptyObject(values) && !isValuesValidFull && wasValidetedFull && isValuesValidFullCheckbox;
+
+        const cases = { case1, case2, case3, case4 };
+        const isNeededUpdate = case1 || case2 || case3 || case4;
+        //TODO добавить сценарий когда есть частино коректные или не корректные и их надо обновить
+
+        console.log('isNeededUpdate', isNeededUpdate, problemBlockId, cases, values, newValues);
+        console.log('wasValidetedFull', wasValidetedFull, 'wasValidetedPartially', wasValidetedPartially,
+            'isValuesValidFull', isValuesValidFull, 'isValuesValidSome', isValuesValidSome, 'isValuesValidPartially', isValuesValidPartially);
+        return { isNeededUpdate, cases };
     }
 
-    async updateValues(problemBlockId, values) {
-        this.data[problemBlockId] = { ...values };
-        this.updateData();
+    mergeValues(problemBlockId, values, cases) {
+        //TODO добавить обрабокту значний, чтобы если есть инкорект или частично корект заменялись коректом, если уже корект - ни на что не менять
+        const { case3 } = cases;
+        const oldValues = this.data[problemBlockId];
+        const newValues = {};
+        let newValuesWasAdded = false;
+        console.log('mergeValues problemBlockId', problemBlockId);
+
+        if (case3) {
+            Object.keys(oldValues).some(inputId => {
+                const oldValue = oldValues[inputId] ?? {};
+                const value = values[inputId] ?? {};
+
+                if (!oldValue.isCorrect && value.isCorrect && (value.isCorrect !== this.classes.incorrect)) {
+                    newValues[inputId] = value;
+                    console.log('1 newValues[inputId] = value');
+                    console.log(inputId, oldValue, value);
+                    newValuesWasAdded ||= true;
+                }
+                if (oldValue.isCorrect && (oldValue.isCorrect === this.classes.correct)) {
+                    newValues[inputId] = oldValue;
+                    console.log('2 newValues[inputId] = oldValue');
+                    console.log(inputId, oldValue, value);
+                }
+                if (oldValue.isCorrect && (oldValue.isCorrect !== this.classes.correct) && value.isCorrect && (value.isCorrect !== this.classes.incorrect)) {
+                    newValues[inputId] = value;
+                    console.log('3 newValues[inputId] = value');
+                    console.log(inputId, oldValue, value);
+                    newValuesWasAdded ||= true;
+                }
+            });
+        }
+
+        const mergedValues = { ...values, ...newValues };
+
+        return { mergedValues, newValuesWasAdded };
+    }
+
+    async updateValues(problemBlockId, values, cases) {
+        const { mergedValues, newValuesWasAdded } = this.mergeValues(problemBlockId, values, cases);
+        this.data[problemBlockId] = mergedValues;
+        console.log('updateValues', newValuesWasAdded);
+        if (newValuesWasAdded) {
+            await this.updateData();
+        }
     }
 
     async updateData() {
@@ -602,32 +674,6 @@ class Page {
         }
 
         return [validatedValues, wasValidetedFull, wasValidetedPartially];
-    }
-
-    buttonHandler = async (e) => {
-        console.log('buttonHandler');
-        let button = e.target;
-
-        if (e.target.tagName === 'SPAN') {
-            button = e.target.parentElement;
-        }
-
-        const buttonAriaDescribedby = button.getAttribute('aria-describedby');
-        const hash = this.getHashFromAriaDescribedby(buttonAriaDescribedby);
-        const values = this.getValuesByBlockHash(hash);
-        const problemBlockId = this.getProblemBlockIdByHash(hash);
-        const validates = this.validateValues(values, problemBlockId);
-        const isNeededUpdate = this.isNeededUpdate(problemBlockId, validates);
-        const [validatedValues, _1, _2] = validates;
-
-        if (isNeededUpdate) {
-            await this.updateValues(problemBlockId, validatedValues);
-        }
-    }
-
-    inputsHandler = async (e) => {
-        console.log(e.target.type);
-        console.log(e.target);
     }
 
     insertToggleCSS() {
@@ -729,7 +775,6 @@ class Page {
         })
     }
 
-
     addToggle(problemBlock) {
         const problemBlockId = this.getProblemBlockId(problemBlock);
         const values = this.data[problemBlockId] ?? {};
@@ -805,6 +850,7 @@ class Page {
                     input.placeholder = show
                         ? (color !== 'red' ? storeValue.value : '')
                         : '';
+                    //TODO поправить чтобы если не всех значений стоит коррект класс, то обновить облако и подумать что делать для остальных типов инпута
                 }
 
                 if (type === 'textarea') {
@@ -835,10 +881,6 @@ class Page {
             const inputs = this.getInputsByProblemBlock(problemBlock);
             const values = this.getValuesFromInputs(inputs);
             const [validatedValues, wasValidetedFull, wasValidetedPartially] = this.validateValues(values, problemBlockId);
-
-            // this.addEventListenerOnButton(button, this.buttonHandler);
-            // this.addEventListenerOnInputs(inputs, this.inputsHandler);
-
             const blockProblemId = problemBlock.querySelector(`[data-problem-id="${problemBlockId}"]`);
 
             let observer = new MutationObserver(async mutationRecords => {
@@ -855,11 +897,13 @@ class Page {
                         //console.log('hash problemBlockId', hash, problemBlockId);
 
                         const validates = this.validateValues(values, problemBlockId);
-                        const isNeededUpdate = this.isNeededUpdate(problemBlockId, validates);
+                        const { isNeededUpdate, cases } = this.isNeededUpdate(problemBlockId, validates);
                         const [validatedValues, _1, _2] = validates;
+                        const problemBlock = this.getProblemBlockById(problemBlockId);
+                        this.addToggle(problemBlock);
 
                         if (isNeededUpdate) {
-                            await this.updateValues(problemBlockId, validatedValues);
+                            await this.updateValues(problemBlockId, validatedValues, cases);
                         }
                     }
                 }
@@ -881,40 +925,78 @@ class Page {
         return data;
     }
 
-    compareData(data) {
-        let isNeededUpdate = false;
-        let isNeededRescan = false;
+    async compareData(data) {
+        console.log('compareData');
+        let isNeededUpdateData = false;
+        let newValuesWasAddedToData = false;
+        const problemBlocksId = Object.keys({ ...this.data, ...data });
 
-        Object.keys(this.data).forEach(blockId => {
-            let values = data[blockId] ?? {};
-            if (
-                (this.isEmptyObject(values) && this.valuesChecked(this.data[blockId]))
-                || (!this.isEmptyObject(values) && !this.valuesChecked(values) && this.valuesChecked(this.data[blockId]))
-            ) {
-                //data[blockId] = this.data[blockId];
-                isNeededUpdate = true;
-            }
+        problemBlocksId.forEach(problemBlockId => {
+            const values = data[problemBlockId] ?? {};
+            const validates = this.validateValues(values, problemBlockId);
+            const { isNeededUpdate, cases } = this.isNeededUpdate(problemBlockId, validates);
+            const [validatedValues, _1, _2] = validates;
+            isNeededUpdateData ||= isNeededUpdate;
 
-            if (
-                (this.isEmptyObject(this.data[blockId]) && this.valuesChecked(values))
-                || (!this.isEmptyObject(this.data[blockId]) && !this.valuesChecked(this.data[blockId]) && this.valuesChecked(values))
-            ) {
-                this.data[blockId] = values;
-                isNeededRescan = true;
+            if (isNeededUpdate) {
+                const { mergedValues, newValuesWasAdded } = this.mergeValues(problemBlockId, validatedValues, cases);
+                this.data[problemBlockId] = mergedValues;
+                newValuesWasAddedToData ||= newValuesWasAdded;
             }
         });
 
         this.addToggles();
 
-        console.log('isNeededUpdate', isNeededUpdate, isNeededRescan)
-        if (isNeededUpdate) {
-            //this.data = data;
-            this.updateData();
+        console.log('isNeededUpdateData', isNeededUpdateData, newValuesWasAddedToData);
+        if (isNeededUpdateData && newValuesWasAddedToData) {
+            await this.updateData();
         }
 
-        if (isNeededRescan) {
-            //this.updateData();
-        }
+        // const validates = this.validateValues(values, problemBlockId);
+        // const { isNeededUpdate, cases } = this.isNeededUpdate(problemBlockId, validates);
+        // const [validatedValues, _1, _2] = validates;
+
+        // if (isNeededUpdate) {
+        // this.data[problemBlockId] = this.mergeValues(problemBlockId, values, cases);
+        // await this.updateData();
+        //     await this.updateValues(problemBlockId, validatedValues, cases);
+        // }
+
+        // let isNeededUpdate = false;
+        // let isNeededRescan = false;
+
+        // Object.keys(this.data).forEach(blockId => {
+        //     const values = data[blockId] ?? {};
+        //     const oldValues = this.data[blockId] ?? {};
+
+        //     if (
+        //         (this.isEmptyObject(values) && this.valuesChecked(oldValues))
+        //         || (!this.isEmptyObject(values) && !this.valuesChecked(values) && this.valuesChecked(oldValues))
+        //     ) {
+        //         //data[blockId] = this.data[blockId];
+        //         isNeededUpdate = true;
+        //     }
+
+        //     if (
+        //         (this.isEmptyObject(oldValues) && this.valuesChecked(values))
+        //         || (!this.isEmptyObject(oldValues) && !this.valuesChecked(oldValues) && this.valuesChecked(values))
+        //     ) {
+        //         this.data[blockId] = values;
+        //         isNeededRescan = true;
+        //     }
+        // });
+
+        // this.addToggles();
+
+        // // console.log('isNeededUpdate', isNeededUpdate, isNeededRescan)
+        // if (isNeededUpdate) {
+        //     //this.data = data;
+        //     await this.updateData();
+        // }
+
+        // if (isNeededRescan) {
+        //     //this.updateData();
+        // }
     }
 }
 
@@ -963,8 +1045,8 @@ class Store {
     }
 
     async savePage(data, directory, block) {
-        const res = await this.put(data, directory, block);
         this.addStoreToLocalStorage();
+        const res = await this.put(data, directory, block);
     }
 
     addStoreToLocalStorage() {
@@ -996,6 +1078,7 @@ class Store {
     }
 
     async put(body, directory, block) {
+        console.log('put', JSON.stringify(body));
         const escapingBlock = this.escapingString(block);
         const escapingBody = this.escapingKeysOfObject(body);
         const path = { directory, block: escapingBlock };
@@ -1138,7 +1221,7 @@ async function handlerVerticalBlockPage() {
     const auth = new Auth(apiKey);
     const store = new Store(url, auth, page);
     await store.init();
-    page.init(store);
+    await page.init(store);
 
 }
 
