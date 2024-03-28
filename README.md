@@ -41,7 +41,7 @@ https://apps.skillfactory.ru/learning/course/course-v1:Skillfactory+URFUML2023+S
 </details>
 
 <details>
-<summary>для select элменетов нужный option будет зеленого цвета.</summary>
+<summary>для select элменетов нужный option будет зеленого цвета (для компьютеров на mac os цвет не меняется, особенность ос, буду думать как решить).</summary>
 
 ![Screenshot 13](https://github.com/srtxtex/sf_extension/blob/dev/images/13.png)
 </details>
