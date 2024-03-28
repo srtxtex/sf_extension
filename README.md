@@ -96,6 +96,7 @@ https://www.youtube.com/watch?v=8tyjJD65zws
 // @version      0.1
 // @author       VirtusTex
 // @updateURL https://raw.githubusercontent.com/srtxtex/sf_extension/main/userscript.js
+// @downloadURL https://raw.githubusercontent.com/srtxtex/sf_extension/main/userscript.js
 // ==/UserScript==
 ```
 или следующий код для dev версии
@@ -106,6 +107,7 @@ https://www.youtube.com/watch?v=8tyjJD65zws
 // @version      0.1
 // @author       VirtusTex
 // @updateURL https://raw.githubusercontent.com/srtxtex/sf_extension/dev/userscript.js
+// @downloadURL https://raw.githubusercontent.com/srtxtex/sf_extension/dev/userscript.js
 // ==/UserScript==
 ```
 
