@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         SF extension
-// @version      0.9
+// @version      1.0
 // @description  SF extension
 // @author       VirtusTex
 // @license      GPL-3.0 license

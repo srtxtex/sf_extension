@@ -29,13 +29,13 @@ https://apps.skillfactory.ru/learning/course/course-v1:Skillfactory+URFUML2023+S
 ![Screenshot 11](https://github.com/srtxtex/sf_extension/blob/dev/images/11.png)
 
 Подсказки заносятся в базу при открытии страницы с пройденым заданием или в процессе его прохождения при правильном ответе.
-Если в эти моменты расширение работало (было установлено и включено), ответы отправятся в базу и будут доступны всем пользователям приложения.
-Если кнопки подсказки нет или она пропала после отправки ответа, перезагрузите страницу. Если это не помогло, можете написать мне с примером - скорее всего подсказки для данного типа ввода не разработаны или подсказки еще нет в базе.
+Если в эти моменты расширение работало (было установлено и включено), подсказки отправятся в базу и будут доступны всем пользователям приложения.
+Если кнопки подсказки нет или она пропала после отправки ответа, перезагрузите страницу. Если это не помогло, скорее всего подсказки для данного типа ввода не разработаны или подсказки еще нет в базе.
 
 Как выглядят подсказки:
 
 <details>
-<summary>для checkbox и radio элементов правильный ответ будет зеленым цветом если это текст и обведен зеленой рамкой если это картинка. Если тип checkbox и правильных ответов несколько, но в базе только часть правильных ответов (еще не все), они буду выделены оранжевым.</summary>
+<summary>для checkbox и radio элементов подсказка будет выделена зеленым цветом если это текст и обведена зеленой рамкой если это картинка. Если тип checkbox и подсказок несколько, но в базе только часть подсказок (еще не все), они буду выделены оранжевым.</summary>
 
 ![Screenshot 12](https://github.com/srtxtex/sf_extension/blob/dev/images/12.png)
 </details>
@@ -47,13 +47,13 @@ https://apps.skillfactory.ru/learning/course/course-v1:Skillfactory+URFUML2023+S
 </details>
 
 <details>
-<summary>для text элементов правильный ответ будет показан в его placeholder.</summary>
+<summary>для text элементов подсказка будет показана в его placeholder.</summary>
 
 ![Screenshot 14](https://github.com/srtxtex/sf_extension/blob/dev/images/14.png)
 </details>
 
 <details>
-<summary>для textarea элементов при наведелнии на него будет показан title (tooltip) с правильным ответом.</summary>
+<summary>для textarea элементов при наведелнии на него будет показан title (tooltip) с подсказкой.</summary>
 
 ![Screenshot 15](https://github.com/srtxtex/sf_extension/blob/dev/images/15.png)
 </details>
@@ -102,7 +102,7 @@ https://www.youtube.com/watch?v=8tyjJD65zws
 
 ```
 // ==UserScript==
-// @name         SF extension
+// @name         SF extension dev
 // @version      0.1
 // @author       VirtusTex
 // @updateURL https://raw.githubusercontent.com/srtxtex/sf_extension/dev/userscript.js
