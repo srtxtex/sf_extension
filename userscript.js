@@ -1,14 +1,14 @@
 // ==UserScript==
-// @name         SF extension
+// @name         SF extension dev
 // @version      1.2
-// @description  SF extension
+// @description  SF extension dev
 // @author       VirtusTex
 // @license      GPL-3.0 license
 // @grant        GM_xmlhttpRequest
 // @include https://apps.skillfactory.ru/*
 // @include https://lms.skillfactory.ru/*
-// @downloadURL https://raw.githubusercontent.com/srtxtex/sf_extension/main/userscript.js
-// @updateURL https://raw.githubusercontent.com/srtxtex/sf_extension/main/userscript.js
+// @downloadURL https://raw.githubusercontent.com/srtxtex/sf_extension/dev/userscript.js
+// @updateURL https://raw.githubusercontent.com/srtxtex/sf_extension/dev/userscript.js
 // ==/UserScript==
 
 const delay = 700;
