@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         SF extension
-// @version      1.0
+// @version      1.2
 // @description  SF extension
 // @author       VirtusTex
 // @license      GPL-3.0 license
@@ -20,6 +20,7 @@ const hostname = {
 
 const pathname = {
     home: '/home',
+    progress: '/progress',
     sequentialBlock: '@sequential+block',
     verticalBlock: '/xblock',
 };
@@ -166,6 +167,250 @@ async function handlerHomePage() {
     }
 }
 
+async function handlerProgressPage() {
+    const timerId = setInterval(() => {
+        const nav = document.getElementsByClassName('sf-progress-tab__detailed-grades-container');
+        const loader = document.querySelector('.outline-header__loader-container');
+        //console.log('handlerProgressPage', loader)
+        if (!Boolean(loader)) {//nav.length
+            //console.log('handlerProgressPage false ', loader)
+            clearInterval(timerId);
+            // setTimeout(start, 2000)
+            start();
+        }
+    }, 100);
+
+    function start() {
+
+        const data = {
+            '1': ['I. Операционная система Linux', 'I. Программирование на Python', 'I. Business English. Начинающие', 'I. Business English. Продолжающие', 'I. Программная инженерия. Часть I', 'I. Математические основы анализа данных. Часть I', 'I. Математические основы машинного обучения. Часть I', 'I. Цифровые компетенции в научной деятельности', 'I. Проектный практикум'],
+            '2': ['II. Основы SQL', 'II. Научный английский', 'II. Углубленное программирование на Python', 'II. Автоматизация администрирования MLOps', 'II. Программная инженерия. Часть II', 'II. Математические основы машинного обучения. Часть II', 'II. Математические основы анализа данных. Часть II', 'II. Глубокие нейронные сети на Python', 'II. Проектный практикум 2', 'II. Научный английский. Начинающие', 'II. Научный английский. Продолжающие'],
+            //'Адаптационный блок', 'Выравнивающий курс по математике', 'Записи встреч (организационные, внеучебные)', 
+        }
+        const Pathname = {
+            Progress: '/learning/course/course-v1:Skillfactory+URFUML2023+SEP2023/progress',
+        }
+
+        console.log('start')
+
+        document.querySelector('div.sf-outline-page__outline-container > nav > a:nth-child(2)')?.addEventListener('click', e => {
+            const active = e.target.classList.contains('sf-course-tabs__tab--active');
+            if (!active) {
+                const timerId = setInterval(() => {
+                    const nav = document.getElementsByClassName('sf-progress-tab__detailed-grades-container');
+                    if (Boolean(nav.length)) {
+                        clearInterval(timerId);
+                        document.body.style.zoom = 0.01;
+                        document.getElementById('root').style.height = '10000vh';
+                        setTimeout(() => {
+                            document.body.style.zoom = 1;
+                            document.getElementById('root').style.height = '100vh';
+                            remakeNav()
+                        }, 1000);
+                    }
+                }, 100);
+            }
+        });
+
+        function remakeNav() {
+            console.log('remakeNav')
+
+            const [nav] = document.getElementsByClassName('sf-progress-tab__detailed-grades-container');
+            console.log(nav)
+            nav.firstElementChild.remove();
+            // nav.style.flex = "0 0 536px";
+
+            const ul = nav;//nav.firstChild;
+            const buttonsLinks = {};
+            for (let elem of nav.children) {
+                if (elem.tagName !== "DIV") continue;
+                const name = elem?.firstElementChild?.innerText;
+                buttonsLinks[name] = elem;
+            }
+            let buttonList = [];
+
+            function createBullet(name) {
+                const bullet = document.createElement('div');
+                bullet.style.padding = '20px';
+                bullet.style.cursor = 'pointer';
+                bullet.style.fontSize = '32px';
+                bullet.classList.add('sf-module-table');
+                bullet.classList.add('my_bullet');
+                bullet.innerHTML = `&nbsp;&nbsp;${name}`;
+                // bullet.innerHTML = `<span>></span>&nbsp;&nbsp;${name}`;
+                // bullet.childNodes[0].style.transform = "rotate(90deg)"
+                return bullet;
+            }
+
+            const bullet = createBullet(`Неотсортированное`);
+            nav.insertAdjacentElement('afterbegin', bullet);
+
+            bullet.onclick = function () {
+                const ul = this.nextElementSibling;
+                const display = ul.style.display;
+                ul.style.display = Boolean(display) ? '' : 'none';
+                console.log(this)
+                // Boolean(display) ? this.childNodes[0].style.transform = "rotate(90deg)" : this.childNodes[0].style.transform = "rotate(0deg)";
+            }
+
+            Object.keys(data).forEach(semesterNumber => {
+                const disciplines = data[semesterNumber];
+                const cloneUl = ul.cloneNode(true);
+                const bulletName = `${semesterNumber} Семестр`;
+                const bullet = createBullet(bulletName);
+
+                nav.insertAdjacentElement('afterbegin', cloneUl);
+                nav.insertAdjacentElement('afterbegin', bullet);
+
+                const list = cloneUl.childNodes;
+
+                const totalCount = {
+                    current: 0,
+                    total: 0,
+                }
+
+                list.forEach(item => {
+                    const discipline = item?.firstElementChild?.innerText;
+                    // item.style.padding = "15px 24px";
+                    item.style.paddingBottom = '5px';
+                    item.style.marginBottom = '5px'
+
+                    if (!disciplines.includes(discipline)) {
+                        item.style.display = 'none';
+                        //item.remove();
+                    } else {
+                        const count = {
+                            other: {
+                                current: 0,
+                                total: 0,
+                            },
+                            vo: {
+                                current: 0,
+                                total: 0,
+                            }
+                        };
+
+                        item.classList.add('my_hidden');
+                        item.childNodes.forEach(div => {
+                            if (div.tagName !== "DIV") return;
+                            div.style.display = 'none';
+
+                            if (!div.classList.contains('sf-module-table__module')) return;
+
+                            const name = div.querySelector('.sf-module-lazy-dropdown__name').innerText; //МОМО. Домашнее задание №1 (vo_HW)
+                            const grade = div.querySelector('.sf-module-lazy-dropdown__grade').innerText; //'-/-'
+
+                            if (grade !== '-/-') {
+                                const [current, total] = grade.trim().split('/').map(parseFloat);
+
+                                if (name.includes('(vo_')) {
+                                    count.vo.current += current;
+                                    count.vo.total += total;
+                                } else {
+                                    count.other.current += current;
+                                    count.other.total += total;
+                                }
+                            }
+                        });
+
+                        let percent = (count.other.current + count.vo.current) / (count.other.total + count.vo.total) * 100;
+                        if (isNaN(percent)) percent = 100;
+                        //const countString = `(test: ${count.other.current}/${count.other.total}, hw: ${count.vo.current}/${count.vo.total}) ${percent.toFixed(2)}%`; //${}
+                        const countString = `   (${count.other.current + count.vo.current}/${count.other.total + count.vo.total},  ${percent.toFixed(2)}%)`; //${}
+
+                        // if (isNaN(percent)) console.log(count);
+
+                        totalCount.current += count.other.current + count.vo.current;
+                        totalCount.total += count.other.total + count.vo.total;
+                        // console.log('discipline', discipline, countString);
+
+                        item.firstElementChild.innerText += '   ' + countString;
+
+                        const fc = item?.firstElementChild;
+                        fc.onclick = function (e) {
+                            //console.log('item.onclick', e)
+                            const cont = e.target.parentElement;
+                            if (cont.classList.contains('my_hidden')) {
+                                cont.classList.remove('my_hidden');
+                                cont.childNodes.forEach(div => {
+                                    if (div.tagName !== "DIV") return;
+                                    div.style.display = '';
+                                })
+                            } else {
+                                cont.classList.add('my_hidden');
+                                cont.childNodes.forEach(div => {
+                                    if (div.tagName !== "DIV") return;
+                                    div.style.display = 'none';
+                                })
+                            }
+                        }
+                    }
+                });
+
+
+                nav.querySelectorAll('.my_bullet').forEach(bullet => {
+                    if (bullet.innerText.trim() === bulletName) {
+                        const percent = totalCount.current / totalCount.total * 100;
+                        // console.log('bullet.innerText', bulletName, percent)
+                        bullet.innerText += `   (${totalCount.current}/${totalCount.total},  ${percent.toFixed(2)}%)`
+                    }
+                })
+
+                bullet.onclick = function () {
+                    const ul = this.nextElementSibling;
+                    const display = ul.style.display;
+                    ul.style.display = Boolean(display) ? '' : 'none';
+                    // Boolean(display) ? this.childNodes[0].style.transform = "rotate(90deg)" : this.childNodes[0].style.transform = "rotate(0deg)";
+                }
+                buttonList = [...buttonList, ...cloneUl.children];
+            });
+
+
+
+
+            // for (let li of buttonList) {
+            //     li.onclick = function () {
+            //         for (let el of buttonList) {
+            //             el.classList.remove('sf-course-menu__item--selected');
+            //         }
+            //         this.classList.add('sf-course-menu__item--selected');
+            //         const name = this.innerText;
+            //         buttonsLinks[name].click();
+            //     }
+            // }
+
+            let disciplines = [];
+            Object.keys(data).forEach(semesterNumber => {
+                disciplines = [...disciplines, ...data[semesterNumber]];
+            });
+
+            nav.childNodes.forEach(item => {
+                const discipline = item?.firstElementChild?.innerText;
+                // item.style.padding = "15px 24px";
+                if (disciplines?.includes(discipline)) {
+                    item.style.display = 'none';
+                    //item.remove();
+                }
+            });
+        }
+
+        if (location.pathname === Pathname.Progress) {
+            document.body.style.zoom = 0.01;
+            document.getElementById('root').style.height = '10000vh';
+            setTimeout(() => {
+                document.body.style.zoom = 1;
+                document.getElementById('root').style.height = '100vh';
+                setTimeout(remakeNav, 5000);
+            }, 1000);
+            // setTimeout(remakeNav, 2000);
+        }
+    }
+}
+
+function getRandomNumber(min, max) {
+    return Math.random() * (max - min) + min
+}
+
 const router = new Router(document);
 
 const pageType = {
@@ -225,6 +470,28 @@ class Page {
             this.data = { ...data };
             const pageData = this.initPage();
             await this.compareData(pageData);
+
+            const min = 2 * 60 * 1000;
+            const max = 4 * 60 * 1000;
+
+            setInterval(async () => {
+                const block = this.getVerticalBlock();
+                const directory = directoryType.verticalBlocks;
+                // await this.store.savePage(this.data, directory, block);
+                await this.store.fetchStore(directory, block)
+
+
+
+                // const directory = directoryType.verticalBlocks;
+                const data = this.loadDataFromStore(directory);
+                this.data = { ...data };
+                console.log('setInterval data', data)
+
+                this.addToggles();
+                console.log('setInterval addToggles')
+
+            }, getRandomNumber(min, max))
+
         } else {
 
         }
@@ -923,13 +1190,20 @@ class Page {
     addToggles() {
         const problemBlocks = this.getProblemBlocks();
 
+
         problemBlocks.forEach(problemBlock => {
             this.addToggle(problemBlock);
         })
     }
 
     addToggle(problemBlock) {
+        const $toggle = problemBlock.querySelector('label.toggle')
+        if ($toggle) return;
+
         const problemBlockId = this.getProblemBlockId(problemBlock);
+
+
+        // console.log('addToggle', problemBlockId, problemBlock)
         const values = this.data[problemBlockId] ?? {};
 
         if (Utils.isEmptyObject(values)) return; //toggle.disabled  = true;
@@ -1447,6 +1721,11 @@ async function handlerVerticalBlockPage() {
                 path: pathname.home,
                 handler: handlerHomePage,
             },
+            // {
+            //     host: hostname.apps,
+            //     path: pathname.progress,
+            //     handler: handlerProgressPage,
+            // },
             {
                 host: hostname.apps,
                 path: pathname.sequentialBlock,
